@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  scans     Scan[]
+  favorites Favorite[]
+}
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  barcode      String   @unique
+  name         String
+  brand        String?
+  category     String?
+  description  String?
+  imageUrl     String?
+  manufacturer String?
+  country      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ingredients ProductIngredient[]
+  attributes  ProductAttribute[]
+  nutrition   ProductNutrition?
+  prices      ProductPrice[]
+  scans       Scan[]
+  favorites   Favorite[]
+}
+
+model ProductIngredient {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  name        String
+  description String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductAttribute {
+  id        Int    @id @default(autoincrement())
+  productId Int
+  key       String
+  value     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Scan {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  productId   Int
+  scannedCode String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model ProductPrice {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+
+  amount       Decimal
+  priceType    String   @default("SALE")
+
+  currency     String   @default("INR")
+  merchant     String?
+  source       String?
+  availability String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+model ProductNutrition {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+
+  calories       Float?
+  protein        Float?
+  carbohydrates  Float?
+  fat            Float?
+  saturatedFat   Float?
+  sugars         Float?
+  fiber          Float?
+  salt           Float?
+  sodium         Float?
+
+  unit      String   @default("per_100g")
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
