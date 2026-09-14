@@ -5,8 +5,10 @@ import { notFoundMiddleware } from "./middleware/not-found.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { requestIdMiddleware } from "./middleware/request-id.middleware.js";
 import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
+import helmet from "helmet";
 
 const app = express();
+app.use(helmet());
 
 app.use(express.json());
 app.use(requestIdMiddleware);
