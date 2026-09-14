@@ -46,9 +46,18 @@ export class UPCItemDBProvider implements ProductProvider {
     async getProductByBarcode(
         barcode: string
     ): Promise<ExternalProduct | null> {
-        const response = await fetch(
-            `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
-        );
+        let response: Response;
+
+        try {
+            response = await fetch(
+                `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
+            );
+        } catch (error) {
+            throw new ProviderError(
+                "UPCitemdb network request failed",
+                "UPCitemdb"
+            );
+        }
 
         if (!response.ok) {
             throw new ProviderError(

@@ -124,3 +124,28 @@ export const createProduct = async (data: {
         },
     });
 };
+export const updateProduct = async (
+    productId: number,
+    data: {
+        name?: string;
+        brand?: string;
+        category?: string;
+        description?: string;
+        imageUrl?: string;
+        manufacturer?: string;
+        country?: string;
+    }
+) => {
+    return prisma.product.update({
+        where: {
+            id: productId,
+        },
+        data,
+        include: {
+            ingredients: true,
+            attributes: true,
+            prices: true,
+            nutrition: true,
+        },
+    });
+};

@@ -1,11 +1,20 @@
 import {
     findProductByBarcode,
     createProduct,
+    updateProduct as updateProductRepository,
 } from "../repositories/product.repository.js";
 
+import {
+    getCache,
+    setCache,
+    deleteCache,
+} from "./redis.service.js";
+import { productCacheKey } from "../utils/cache-key.js";
 import { UPCItemDBProvider } from "./upcitemdb.provider.js";
 import { OpenFoodFactsProvider } from "./openfoodfacts.provider.js";
 import { normalizeProduct } from "./product.normalizer.js";
+import { ProviderError } from "../utils/provider-error.js";
+import { CACHE_TTL } from "../config/cache.js";
 
 const generalProvider = new UPCItemDBProvider();
 const foodProvider = new OpenFoodFactsProvider();
@@ -32,16 +41,62 @@ const isFoodProduct = (category?: string): boolean => {
 };
 
 export const getProductByBarcode = async (barcode: string) => {
-    // 1. Check our database first
-    const existingProduct = await findProductByBarcode(barcode);
+    // 1. Check Redis first
+    const cacheKey = productCacheKey(barcode);
+    const cachedProduct = await getCache(cacheKey);
 
-    if (existingProduct) {
-        return existingProduct;
+    if (cachedProduct) {
+        return JSON.parse(cachedProduct);
     }
 
-    // 2. Ask the general product provider
-    const externalProduct =
-        await generalProvider.getProductByBarcode(barcode);
+    // 2. Check our database
+    const existingProduct =
+        await findProductByBarcode(barcode);
+
+    if (existingProduct) {
+        await setCache(
+            cacheKey,
+            JSON.stringify(existingProduct),
+            CACHE_TTL.PRODUCT
+        );
+
+        return existingProduct;
+    }
+    // 3. Ask the general product provider
+    let externalProduct;
+
+    try {
+        externalProduct =
+            await generalProvider.getProductByBarcode(barcode);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(
+                "UPCitemdb provider failed:",
+                error.message
+            );
+        }
+
+        externalProduct = null;
+    }
+
+    if (!externalProduct) {
+        try {
+            externalProduct =
+                await foodProvider.getProductByBarcode(barcode);
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error(
+                    "Open Food Facts provider failed:",
+                    error.message
+                );
+            }
+
+            throw new ProviderError(
+                "All product providers failed",
+                "OpenFoodFacts"
+            );
+        }
+    }
 
     if (!externalProduct) {
         return null;
@@ -62,6 +117,8 @@ export const getProductByBarcode = async (barcode: string) => {
                     ...externalProduct.attributes,
                     ...foodProduct.attributes,
                 };
+                externalProduct.nutrition =
+                    foodProduct.nutrition;
             }
         } catch (error) {
             console.error(
@@ -90,6 +147,12 @@ export const getProductByBarcode = async (barcode: string) => {
         nutrition: normalizedProduct.nutrition,
     });
 
+    await setCache(
+        cacheKey,
+        JSON.stringify(savedProduct),
+        3600
+    );
+
     return savedProduct;
 };
 
@@ -104,4 +167,29 @@ export const addProduct = async (data: {
     country?: string;
 }) => {
     return createProduct(data);
+};
+export const updateProduct = async (
+    productId: number,
+    barcode: string,
+    data: {
+        name?: string;
+        brand?: string;
+        category?: string;
+        description?: string;
+        imageUrl?: string;
+        manufacturer?: string;
+        country?: string;
+    }
+) => {
+    const updatedProduct =
+        await updateProductRepository(
+            productId,
+            data
+        );
+
+    const cacheKey = productCacheKey(barcode);
+
+    await deleteCache(cacheKey);
+
+    return updatedProduct;
 };

@@ -3,6 +3,8 @@ import {
     ProductProvider,
 } from "./product-provider.service.js";
 
+import { ProviderError } from "../utils/provider-error.js";
+
 interface OpenFoodFactsResponse {
     status?: number;
     status_verbose?: string;
@@ -51,44 +53,28 @@ export class OpenFoodFactsProvider implements ProductProvider {
         barcode: string
     ): Promise<ExternalProduct | null> {
         const url =
-            `https://world.openfoodfacts.org/api/v3/product/${barcode}` +
-            `?fields=` +
-            [
-                "code",
-                "product_name",
-                "product_name_en",
-                "brands",
-                "categories",
-                "categories_tags",
-                "generic_name",
-                "generic_name_en",
-                "image_url",
-                "image_front_url",
-                "quantity",
-                "countries",
-                "countries_tags",
-                "ingredients_text",
-                "ingredients_text_en",
-                "allergens",
-                "allergens_tags",
-                "traces",
-                "traces_tags",
-                "nutriments",
-                "nutrition_grades",
-                "nova_group",
-                "stores",
-            ].join(",");
-        
-        const response = await fetch(url, {
-            headers: {
-                "User-Agent":
-                    "ScanIQ/1.0 (product intelligence application)",
-            },
-        });
+            `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`;
+
+        let response: Response;
+
+        try {
+            response = await fetch(url, {
+                headers: {
+                    "User-Agent":
+                        "ScanIQ/1.0 (product intelligence application)",
+                },
+            });
+        } catch (error) {
+            throw new ProviderError(
+                "Open Food Facts network request failed",
+                "OpenFoodFacts"
+            );
+        }
 
         if (!response.ok) {
-            throw new Error(
-                `Open Food Facts request failed with status ${response.status}`
+            throw new ProviderError(
+                `Open Food Facts request failed with status ${response.status}`,
+                "OpenFoodFacts"
             );
         }
 
@@ -150,44 +136,63 @@ export class OpenFoodFactsProvider implements ProductProvider {
             : undefined;
 
         const nutriments = product.nutriments;
+
         const nutrition = nutriments
             ? {
                   calories:
-                      typeof nutriments["energy-kcal_100g"] === "number"
+                      typeof nutriments["energy-kcal_100g"] ===
+                      "number"
                           ? nutriments["energy-kcal_100g"]
                           : undefined,
+
                   protein:
-                      typeof nutriments["proteins_100g"] === "number"
+                      typeof nutriments["proteins_100g"] ===
+                      "number"
                           ? nutriments["proteins_100g"]
                           : undefined,
+
                   carbohydrates:
-                      typeof nutriments["carbohydrates_100g"] === "number"
+                      typeof nutriments["carbohydrates_100g"] ===
+                      "number"
                           ? nutriments["carbohydrates_100g"]
                           : undefined,
+
                   fat:
-                      typeof nutriments["fat_100g"] === "number"
+                      typeof nutriments["fat_100g"] ===
+                      "number"
                           ? nutriments["fat_100g"]
                           : undefined,
+
                   saturatedFat:
-                      typeof nutriments["saturated-fat_100g"] === "number"
+                      typeof nutriments["saturated-fat_100g"] ===
+                      "number"
                           ? nutriments["saturated-fat_100g"]
                           : undefined,
+
                   sugars:
-                      typeof nutriments["sugars_100g"] === "number"
+                      typeof nutriments["sugars_100g"] ===
+                      "number"
                           ? nutriments["sugars_100g"]
                           : undefined,
+
                   fiber:
-                      typeof nutriments["fiber_100g"] === "number"
+                      typeof nutriments["fiber_100g"] ===
+                      "number"
                           ? nutriments["fiber_100g"]
                           : undefined,
+
                   salt:
-                      typeof nutriments["salt_100g"] === "number"
+                      typeof nutriments["salt_100g"] ===
+                      "number"
                           ? nutriments["salt_100g"]
                           : undefined,
+
                   sodium:
-                      typeof nutriments["sodium_100g"] === "number"
+                      typeof nutriments["sodium_100g"] ===
+                      "number"
                           ? nutriments["sodium_100g"]
                           : undefined,
+
                   unit: "per_100g",
                   source: "OpenFoodFacts",
               }
