@@ -399,6 +399,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Product: 'Product',
+  ProductSource: 'ProductSource',
   ProductIngredient: 'ProductIngredient',
   ProductAttribute: 'ProductAttribute',
   Scan: 'Scan',
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "product" | "productIngredient" | "productAttribute" | "scan" | "favorite" | "productPrice" | "productNutrition"
+    modelProps: "user" | "product" | "productSource" | "productIngredient" | "productAttribute" | "scan" | "favorite" | "productPrice" | "productNutrition"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -569,6 +570,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProductCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProductCountAggregateOutputType> | number
+        }
+      }
+    }
+    ProductSource: {
+      payload: Prisma.$ProductSourcePayload<ExtArgs>
+      fields: Prisma.ProductSourceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProductSourceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProductSourceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        findFirst: {
+          args: Prisma.ProductSourceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProductSourceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        findMany: {
+          args: Prisma.ProductSourceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>[]
+        }
+        create: {
+          args: Prisma.ProductSourceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        createMany: {
+          args: Prisma.ProductSourceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProductSourceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>[]
+        }
+        delete: {
+          args: Prisma.ProductSourceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        update: {
+          args: Prisma.ProductSourceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        deleteMany: {
+          args: Prisma.ProductSourceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProductSourceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProductSourceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>[]
+        }
+        upsert: {
+          args: Prisma.ProductSourceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProductSourcePayload>
+        }
+        aggregate: {
+          args: Prisma.ProductSourceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProductSource>
+        }
+        groupBy: {
+          args: Prisma.ProductSourceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProductSourceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProductSourceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProductSourceCountAggregateOutputType> | number
         }
       }
     }
@@ -1070,6 +1145,7 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 export const ProductScalarFieldEnum = {
   id: 'id',
   barcode: 'barcode',
+  modelNumber: 'modelNumber',
   name: 'name',
   brand: 'brand',
   category: 'category',
@@ -1082,6 +1158,19 @@ export const ProductScalarFieldEnum = {
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const ProductSourceScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  provider: 'provider',
+  sourceUrl: 'sourceUrl',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductSourceScalarFieldEnum = (typeof ProductSourceScalarFieldEnum)[keyof typeof ProductSourceScalarFieldEnum]
 
 
 export const ProductIngredientScalarFieldEnum = {
@@ -1231,6 +1320,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1414,6 +1510,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   product?: Prisma.ProductOmit
+  productSource?: Prisma.ProductSourceOmit
   productIngredient?: Prisma.ProductIngredientOmit
   productAttribute?: Prisma.ProductAttributeOmit
   scan?: Prisma.ScanOmit

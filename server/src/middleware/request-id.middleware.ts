@@ -1,15 +1,34 @@
 import { randomUUID } from "crypto";
-import { Request, Response, NextFunction } from "express";
+import {
+    Request,
+    Response,
+    NextFunction,
+} from "express";
+
+const REQUEST_ID_REGEX =
+    /^[a-zA-Z0-9._:-]{1,128}$/;
 
 export const requestIdMiddleware = (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
-    const requestId = randomUUID();
+    const incomingRequestId =
+        req.headers["x-request-id"];
 
-    req.headers["x-request-id"] = requestId;
-    res.setHeader("X-Request-ID", requestId);
+    const requestId =
+        typeof incomingRequestId === "string" &&
+        REQUEST_ID_REGEX.test(incomingRequestId)
+            ? incomingRequestId
+            : randomUUID();
+
+    req.headers["x-request-id"] =
+        requestId;
+
+    res.setHeader(
+        "X-Request-ID",
+        requestId
+    );
 
     next();
 };

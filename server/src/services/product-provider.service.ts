@@ -6,6 +6,13 @@ export interface ExternalProductPrice {
     source?: string;
     availability?: string;
 }
+
+export interface ProductSourceInfo {
+    provider: string;
+    sourceUrl?: string;
+    isPrimary?: boolean;
+}
+
 export interface ExternalProductNutrition {
     calories?: number;
     protein?: number;
@@ -35,6 +42,10 @@ export interface ExternalProduct {
         name: string;
         description?: string;
     }>;
+
+    source?: string;
+    sourceUrl?: string;
+    sources?: ProductSourceInfo[];
 
     attributes?: Record<string, string>;
 

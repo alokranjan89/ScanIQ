@@ -22,6 +22,7 @@ model User {
 model Product {
   id           Int      @id @default(autoincrement())
   barcode      String   @unique
+  modelNumber  String?
   name         String
   brand        String?
   category     String?
@@ -36,8 +37,25 @@ model Product {
   attributes  ProductAttribute[]
   nutrition   ProductNutrition?
   prices      ProductPrice[]
+  sources     ProductSource[]
   scans       Scan[]
   favorites   Favorite[]
+}
+
+model ProductSource {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  provider  String
+  sourceUrl String?
+  isPrimary Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, provider])
+  @@index([productId])
+  @@index([provider])
 }
 
 model ProductIngredient {
@@ -56,6 +74,9 @@ model ProductAttribute {
   value     String
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, key])
+  @@index([productId])
 }
 
 model Scan {
@@ -71,6 +92,7 @@ model Scan {
 
   @@index([userId])
   @@index([productId])
+  @@index([userId, createdAt])
 }
 
 model Favorite {

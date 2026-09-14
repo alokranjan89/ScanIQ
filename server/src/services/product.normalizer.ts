@@ -1,5 +1,6 @@
 import {
     ExternalProduct,
+    ProductSourceInfo,
 } from "./product-provider.service.js";
 
 export interface NormalizedProduct {
@@ -24,6 +25,9 @@ export interface NormalizedProduct {
     imageUrl?: string;
     manufacturer?: string;
     country?: string;
+    source?: string;
+    sourceUrl?: string;
+    sources?: ProductSourceInfo[];
 
     ingredients?: Array<{
         name: string;
@@ -42,9 +46,36 @@ export interface NormalizedProduct {
     }>;
 }
 
+const normalizeSources = (
+    productSources?: ProductSourceInfo[]
+): ProductSourceInfo[] | undefined => {
+    if (!productSources || productSources.length === 0) {
+        return undefined;
+    }
+
+    return productSources
+        .filter((source) => source.provider.trim().length > 0)
+        .map((source) => ({
+            provider: source.provider.trim(),
+            sourceUrl: source.sourceUrl?.trim(),
+            isPrimary: Boolean(source.isPrimary),
+        }))
+        .filter(
+            (source, index, array) =>
+                array.findIndex(
+                    (candidate) =>
+                        candidate.provider === source.provider
+                ) === index
+        );
+};
+
 export const normalizeProduct = (
     product: ExternalProduct
 ): NormalizedProduct => {
+    const primarySource =
+        product.sources?.find((source) => source.isPrimary) ??
+        product.sources?.[0];
+
     return {
         barcode: product.barcode.trim(),
         name: product.name.trim(),
@@ -55,6 +86,22 @@ export const normalizeProduct = (
         imageUrl: product.imageUrl?.trim(),
         manufacturer: product.manufacturer?.trim(),
         country: product.country?.trim(),
+        source:
+            product.source?.trim() ??
+            primarySource?.provider?.trim(),
+        sourceUrl:
+            product.sourceUrl?.trim() ??
+            primarySource?.sourceUrl?.trim(),
+        sources: normalizeSources(
+            product.sources ??
+                (product.source
+                    ? [{
+                          provider: product.source,
+                          sourceUrl: product.sourceUrl,
+                          isPrimary: true,
+                      }]
+                    : undefined)
+        ),
 
 
         ingredients: product.ingredients?.filter(

@@ -4,51 +4,51 @@ import {
 } from "./product-provider.service.js";
 
 import { ProviderError } from "../utils/provider-error.js";
+import { parseIngredients } from "./ingredient-parser.js";
+import { fetchWithTimeout } from "../utils/fetch-with-timeout.js";
 
 interface OpenFoodFactsResponse {
     status?: number;
-    status_verbose?: string;
-    code?: string;
 
     product?: {
         product_name?: string;
-        product_name_en?: string;
-
         brands?: string;
-
         categories?: string;
-        categories_tags?: string[];
-
         generic_name?: string;
-        generic_name_en?: string;
-
         image_url?: string;
-        image_front_url?: string;
-
-        quantity?: string;
-
+        manufacturers?: string;
         countries?: string;
-        countries_tags?: string[];
 
         ingredients_text?: string;
-        ingredients_text_en?: string;
+
+        packaging?: string;
+        quantity?: string;
 
         allergens?: string;
-        allergens_tags?: string[];
-
         traces?: string;
-        traces_tags?: string[];
 
-        nutriments?: Record<string, unknown>;
-
-        nutrition_grades?: string;
+        nutriscore_grade?: string;
         nova_group?: number;
 
         stores?: string;
+
+        nutriments?: {
+            "energy-kcal_100g"?: number;
+            proteins_100g?: number;
+            carbohydrates_100g?: number;
+            fat_100g?: number;
+            "saturated-fat_100g"?: number;
+            sugars_100g?: number;
+            fiber_100g?: number;
+            salt_100g?: number;
+            sodium_100g?: number;
+        };
     };
 }
 
-export class OpenFoodFactsProvider implements ProductProvider {
+export class OpenFoodFactsProvider
+    implements ProductProvider
+{
     async getProductByBarcode(
         barcode: string
     ): Promise<ExternalProduct | null> {
@@ -58,13 +58,28 @@ export class OpenFoodFactsProvider implements ProductProvider {
         let response: Response;
 
         try {
-            response = await fetch(url, {
-                headers: {
-                    "User-Agent":
-                        "ScanIQ/1.0 (product intelligence application)",
+            response = await fetchWithTimeout(
+                url,
+                {
+                    headers: {
+                        Accept: "application/json",
+                        "User-Agent":
+                            "ScanIQ/1.0 (product intelligence application)",
+                    },
                 },
-            });
+                5000
+            );
         } catch (error) {
+            if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+            ) {
+                throw new ProviderError(
+                    "Open Food Facts request timed out",
+                    "OpenFoodFacts"
+                );
+            }
+
             throw new ProviderError(
                 "Open Food Facts network request failed",
                 "OpenFoodFacts"
@@ -78,122 +93,120 @@ export class OpenFoodFactsProvider implements ProductProvider {
             );
         }
 
-        const data =
-            (await response.json()) as OpenFoodFactsResponse;
+        let data: OpenFoodFactsResponse;
 
-        if (data.status !== 1 || !data.product) {
+        try {
+            data =
+                (await response.json()) as OpenFoodFactsResponse;
+        } catch (error) {
+            throw new ProviderError(
+                "Open Food Facts returned invalid JSON",
+                "OpenFoodFacts"
+            );
+        }
+
+        if (
+            data.status !== 1 ||
+            !data.product
+        ) {
             return null;
         }
 
         const product = data.product;
 
-        const attributes: Record<string, string> = {};
+        const attributes: Record<
+            string,
+            string
+        > = {};
 
-        if (product.quantity) {
-            attributes.package_size = product.quantity;
+        if (product.packaging) {
+            attributes.packaging =
+                product.packaging;
         }
 
-        if (product.generic_name_en) {
-            attributes.generic_name = product.generic_name_en;
-        } else if (product.generic_name) {
-            attributes.generic_name = product.generic_name;
+        if (product.quantity) {
+            attributes.package_size =
+                product.quantity;
+        }
+
+        if (product.generic_name) {
+            attributes.generic_name =
+                product.generic_name;
         }
 
         if (product.allergens) {
-            attributes.allergens = product.allergens;
+            attributes.allergens =
+                product.allergens;
         }
 
         if (product.traces) {
-            attributes.traces = product.traces;
+            attributes.traces =
+                product.traces;
         }
 
-        if (product.nutrition_grades) {
+        if (product.nutriscore_grade) {
             attributes.nutri_score =
-                product.nutrition_grades.toUpperCase();
+                product.nutriscore_grade.toUpperCase();
         }
 
-        if (product.nova_group !== undefined) {
+        if (
+            typeof product.nova_group ===
+            "number"
+        ) {
             attributes.nova_group =
                 String(product.nova_group);
         }
 
         if (product.stores) {
-            attributes.stores = product.stores;
+            attributes.stores =
+                product.stores;
         }
 
         const ingredientsText =
-            product.ingredients_text_en ??
-            product.ingredients_text;
+            product.ingredients_text?.trim();
 
-        const ingredients = ingredientsText
-            ? ingredientsText
-                  .split(",")
-                  .map((ingredient) => ingredient.trim())
-                  .filter(Boolean)
-                  .map((ingredient) => ({
-                      name: ingredient,
-                  }))
-            : undefined;
+        const ingredients =
+            parseIngredients(
+                ingredientsText
+            );
 
-        const nutriments = product.nutriments;
+        const nutriments =
+            product.nutriments;
 
-        const nutrition = nutriments
+        const hasNutrition =
+            nutriments &&
+            Object.values(nutriments).some(
+                (value) =>
+                    typeof value === "number"
+            );
+
+        const nutrition = hasNutrition
             ? {
                   calories:
-                      typeof nutriments["energy-kcal_100g"] ===
-                      "number"
-                          ? nutriments["energy-kcal_100g"]
-                          : undefined,
-
+                      nutriments[
+                          "energy-kcal_100g"
+                      ],
                   protein:
-                      typeof nutriments["proteins_100g"] ===
-                      "number"
-                          ? nutriments["proteins_100g"]
-                          : undefined,
-
+                      nutriments.proteins_100g,
                   carbohydrates:
-                      typeof nutriments["carbohydrates_100g"] ===
-                      "number"
-                          ? nutriments["carbohydrates_100g"]
-                          : undefined,
-
+                      nutriments.carbohydrates_100g,
                   fat:
-                      typeof nutriments["fat_100g"] ===
-                      "number"
-                          ? nutriments["fat_100g"]
-                          : undefined,
-
+                      nutriments.fat_100g,
                   saturatedFat:
-                      typeof nutriments["saturated-fat_100g"] ===
-                      "number"
-                          ? nutriments["saturated-fat_100g"]
-                          : undefined,
-
+                      nutriments[
+                          "saturated-fat_100g"
+                      ],
                   sugars:
-                      typeof nutriments["sugars_100g"] ===
-                      "number"
-                          ? nutriments["sugars_100g"]
-                          : undefined,
-
+                      nutriments.sugars_100g,
                   fiber:
-                      typeof nutriments["fiber_100g"] ===
-                      "number"
-                          ? nutriments["fiber_100g"]
-                          : undefined,
-
+                      nutriments.fiber_100g,
                   salt:
-                      typeof nutriments["salt_100g"] ===
-                      "number"
-                          ? nutriments["salt_100g"]
-                          : undefined,
-
+                      nutriments.salt_100g,
                   sodium:
-                      typeof nutriments["sodium_100g"] ===
-                      "number"
-                          ? nutriments["sodium_100g"]
-                          : undefined,
+                      nutriments.sodium_100g,
 
                   unit: "per_100g",
+
                   source: "OpenFoodFacts",
               }
             : undefined;
@@ -202,44 +215,45 @@ export class OpenFoodFactsProvider implements ProductProvider {
             barcode,
 
             name:
-                product.product_name_en ??
-                product.product_name ??
-                "Unknown Food Product",
+                product.product_name?.trim() ||
+                "Unknown Product",
 
-            brand: product.brands,
+            brand:
+                product.brands?.trim(),
 
             category:
-                product.categories_tags?.[0] ??
-                product.categories,
+                product.categories?.trim(),
 
             description:
-                product.generic_name_en ??
-                product.generic_name,
+                product.generic_name?.trim(),
 
             imageUrl:
-                product.image_front_url ??
-                product.image_url,
+                product.image_url?.trim(),
+
+            manufacturer:
+                product.manufacturers?.trim(),
 
             country:
-                product.countries_tags?.[0] ??
-                product.countries,
+                product.countries?.trim(),
 
             ingredients,
-
-            nutrition:
-                nutrition &&
-                Object.values(nutrition).some(
-                    (value) =>
-                        typeof value === "number" &&
-                        Number.isFinite(value)
-                )
-                    ? nutrition
-                    : undefined,
 
             attributes:
                 Object.keys(attributes).length > 0
                     ? attributes
                     : undefined,
+
+            nutrition,
+
+            source: "OpenFoodFacts",
+            sourceUrl:
+                `https://world.openfoodfacts.org/product/${barcode}`,
+            sources: [{
+                provider: "OpenFoodFacts",
+                sourceUrl:
+                    `https://world.openfoodfacts.org/product/${barcode}`,
+                isPrimary: true,
+            }],
         };
     }
 }

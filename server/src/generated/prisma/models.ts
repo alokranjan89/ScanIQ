@@ -10,6 +10,7 @@
  */
 export type * from './models/User.js'
 export type * from './models/Product.js'
+export type * from './models/ProductSource.js'
 export type * from './models/ProductIngredient.js'
 export type * from './models/ProductAttribute.js'
 export type * from './models/Scan.js'

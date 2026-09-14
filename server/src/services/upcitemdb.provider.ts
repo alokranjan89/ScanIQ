@@ -2,57 +2,78 @@ import {
     ExternalProduct,
     ProductProvider,
 } from "./product-provider.service.js";
+
 import { ProviderError } from "../utils/provider-error.js";
+import { fetchWithTimeout } from "../utils/fetch-with-timeout.js";
 
 interface UPCItemDBOffer {
     merchant?: string;
     domain?: string;
     currency?: string;
-    list_price?: number | string;
-    price?: number;
     availability?: string;
-    condition?: string;
-    link?: string;
-    updated_t?: number;
+    price?: number;
+    list_price?: number;
 }
 
 interface UPCItemDBItem {
     ean?: string;
     upc?: string;
-    gtin?: string;
-
     title?: string;
     description?: string;
     brand?: string;
+    category?: string;
     model?: string;
     color?: string;
     size?: string;
     dimension?: string;
     weight?: string;
-    category?: string;
-
+    manufacturer?: string;
+    country?: string;
     images?: string[];
-
     offers?: UPCItemDBOffer[];
 }
 
 interface UPCItemDBResponse {
     code?: string;
     total?: number;
+    offset?: number;
     items?: UPCItemDBItem[];
 }
 
-export class UPCItemDBProvider implements ProductProvider {
+export class UPCItemDBProvider
+    implements ProductProvider
+{
     async getProductByBarcode(
         barcode: string
     ): Promise<ExternalProduct | null> {
+        const url =
+            `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`;
+
         let response: Response;
 
         try {
-            response = await fetch(
-                `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
+            response = await fetchWithTimeout(
+                url,
+                {
+                    headers: {
+                        Accept: "application/json",
+                        "User-Agent":
+                            "ScanIQ/1.0 (product intelligence application)",
+                    },
+                },
+                5000
             );
         } catch (error) {
+            if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+            ) {
+                throw new ProviderError(
+                    "UPCitemdb request timed out",
+                    "UPCitemdb"
+                );
+            }
+
             throw new ProviderError(
                 "UPCitemdb network request failed",
                 "UPCitemdb"
@@ -61,13 +82,22 @@ export class UPCItemDBProvider implements ProductProvider {
 
         if (!response.ok) {
             throw new ProviderError(
-                `UPCItemDB request failed with status ${response.status}`,
+                `UPCitemdb request failed with status ${response.status}`,
                 "UPCitemdb"
             );
         }
 
-        const data =
-            (await response.json()) as UPCItemDBResponse;
+        let data: UPCItemDBResponse;
+
+        try {
+            data =
+                (await response.json()) as UPCItemDBResponse;
+        } catch (error) {
+            throw new ProviderError(
+                "UPCitemdb returned invalid JSON",
+                "UPCitemdb"
+            );
+        }
 
         const item = data.items?.[0];
 
@@ -75,7 +105,10 @@ export class UPCItemDBProvider implements ProductProvider {
             return null;
         }
 
-        const attributes: Record<string, string> = {};
+        const attributes: Record<
+            string,
+            string
+        > = {};
 
         if (item.model) {
             attributes.model = item.model;
@@ -90,39 +123,64 @@ export class UPCItemDBProvider implements ProductProvider {
         }
 
         if (item.dimension) {
-            attributes.dimension = item.dimension;
+            attributes.dimension =
+                item.dimension;
         }
 
         if (item.weight) {
-            attributes.weight = item.weight;
+            attributes.weight =
+                item.weight;
         }
 
         const prices = (item.offers ?? [])
             .flatMap((offer) => {
-                const result = [];
+                const result: Array<{
+                    amount: number;
+                    priceType: string;
+                    currency: string;
+                    merchant?: string;
+                    source?: string;
+                    availability?: string;
+                }> = [];
 
-                if (typeof offer.price === "number" && offer.price >= 0) {
+                if (
+                    typeof offer.price ===
+                        "number" &&
+                    offer.price >= 0
+                ) {
                     result.push({
                         amount: offer.price,
                         priceType: "SALE",
-                        currency: offer.currency || "USD",
-                        merchant: offer.merchant,
-                        source: "UPCitemdb",
-                        availability: offer.availability,
+                        currency:
+                            offer.currency ||
+                            "USD",
+                        merchant:
+                            offer.merchant,
+                        source:
+                            "UPCitemdb",
+                        availability:
+                            offer.availability,
                     });
                 }
 
                 if (
-                    typeof offer.list_price === "number" &&
+                    typeof offer.list_price ===
+                        "number" &&
                     offer.list_price >= 0
                 ) {
                     result.push({
-                        amount: offer.list_price,
+                        amount:
+                            offer.list_price,
                         priceType: "LIST",
-                        currency: offer.currency || "USD",
-                        merchant: offer.merchant,
-                        source: "UPCitemdb",
-                        availability: offer.availability,
+                        currency:
+                            offer.currency ||
+                            "USD",
+                        merchant:
+                            offer.merchant,
+                        source:
+                            "UPCitemdb",
+                        availability:
+                            offer.availability,
                     });
                 }
 
@@ -131,16 +189,48 @@ export class UPCItemDBProvider implements ProductProvider {
 
         return {
             barcode,
-            name: item.title ?? "Unknown Product",
-            brand: item.brand,
-            category: item.category,
-            description: item.description,
-            imageUrl: item.images?.[0],
+
+            name:
+                item.title?.trim() ||
+                "Unknown Product",
+
+            brand:
+                item.brand?.trim(),
+
+            category:
+                item.category?.trim(),
+
+            description:
+                item.description?.trim(),
+
+            imageUrl:
+                item.images?.[0]?.trim(),
+
+            manufacturer:
+                item.manufacturer?.trim(),
+
+            country:
+                item.country?.trim(),
+
             attributes:
                 Object.keys(attributes).length > 0
                     ? attributes
                     : undefined,
-            prices: prices.length > 0 ? prices : undefined,
+
+            prices:
+                prices.length > 0
+                    ? prices
+                    : undefined,
+
+            source: "UPCitemdb",
+            sourceUrl:
+                `https://www.upcitemdb.com/upc/${barcode}`,
+            sources: [{
+                provider: "UPCitemdb",
+                sourceUrl:
+                    `https://www.upcitemdb.com/upc/${barcode}`,
+                isPrimary: true,
+            }],
         };
     }
 }
