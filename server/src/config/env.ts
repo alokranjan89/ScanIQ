@@ -1,6 +1,11 @@
 import "dotenv/config";
 
-const port = Number(process.env.PORT) || 5000;
+const portValue = process.env.PORT ?? "5000";
+const port = Number(portValue);
+
+if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error("PORT must be a valid port number");
+}
 
 const redisUrl = process.env.REDIS_URL;
 
