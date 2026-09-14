@@ -5,8 +5,8 @@ import {
 } from "../repositories/product.repository.js";
 
 import {
-    getCache,
-    setCache,
+    getJsonCache,
+    setJsonCache,
     deleteCache,
 } from "./redis.service.js";
 import { productCacheKey } from "../utils/cache-key.js";
@@ -43,20 +43,19 @@ const isFoodProduct = (category?: string): boolean => {
 export const getProductByBarcode = async (barcode: string) => {
     // 1. Check Redis first
     const cacheKey = productCacheKey(barcode);
-    const cachedProduct = await getCache(cacheKey);
+    const cachedProduct = await getJsonCache(cacheKey);
 
-    if (cachedProduct) {
-        return JSON.parse(cachedProduct);
+    if (cachedProduct.hit) {
+        return cachedProduct.value;
     }
-
     // 2. Check our database
     const existingProduct =
         await findProductByBarcode(barcode);
 
     if (existingProduct) {
-        await setCache(
+        await setJsonCache(
             cacheKey,
-            JSON.stringify(existingProduct),
+            existingProduct,
             CACHE_TTL.PRODUCT
         );
 
@@ -99,9 +98,14 @@ export const getProductByBarcode = async (barcode: string) => {
     }
 
     if (!externalProduct) {
+        await setJsonCache(
+            cacheKey,
+            null,
+            CACHE_TTL.PRODUCT_NOT_FOUND
+        );
+
         return null;
     }
-
     // 3. If this looks like a food product,
     //    enrich it with food-specific information
     if (isFoodProduct(externalProduct.category)) {
@@ -123,7 +127,9 @@ export const getProductByBarcode = async (barcode: string) => {
         } catch (error) {
             console.error(
                 "Food provider enrichment failed:",
-                error
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error"
             );
         }
     }
@@ -147,10 +153,10 @@ export const getProductByBarcode = async (barcode: string) => {
         nutrition: normalizedProduct.nutrition,
     });
 
-    await setCache(
+    await setJsonCache(
         cacheKey,
-        JSON.stringify(savedProduct),
-        3600
+        savedProduct,
+        CACHE_TTL.PRODUCT
     );
 
     return savedProduct;

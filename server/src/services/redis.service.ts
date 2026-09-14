@@ -28,6 +28,23 @@ export const setCache = async (
     }
 };
 
+export const setJsonCache = async <T>(
+    key: string,
+    value: T,
+    ttlSeconds: number
+): Promise<void> => {
+    try {
+        await redis.set(
+            key,
+            JSON.stringify(value),
+            "EX",
+            ttlSeconds
+        );
+    } catch (error) {
+        console.error("Redis JSON SET failed:", error);
+    }
+};
+
 export const deleteCache = async (
     key: string
 ): Promise<void> => {
@@ -35,5 +52,39 @@ export const deleteCache = async (
         await redis.del(key);
     } catch (error) {
         console.error("Redis DELETE failed:", error);
+    }
+};
+
+export const getJsonCache = async <T>(
+    key: string
+): Promise<{ hit: boolean; value: T | null }> => {
+    const cachedValue = await getCache(key);
+
+    if (cachedValue === null) {
+        return {
+            hit: false,
+            value: null,
+        };
+    }
+
+    try {
+        return {
+            hit: true,
+            value: JSON.parse(cachedValue) as T | null,
+        };
+    } catch (error) {
+        console.error(
+            "Invalid JSON cache:",
+            error instanceof Error
+                ? error.message
+                : "Unknown error"
+        );
+
+        await deleteCache(key);
+
+        return {
+            hit: false,
+            value: null,
+        };
     }
 };

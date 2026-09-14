@@ -1,7 +1,21 @@
 import { Redis } from "ioredis";
 import { env } from "./env.js";
 
-const redis = new Redis(env.redisUrl, {
+const RedisCtor = Redis as unknown as new (
+    url: string,
+    options?: {
+        maxRetriesPerRequest?: number;
+        retryStrategy?: (times: number) => number | null;
+    }
+) => {
+    on(event: string, callback: (...args: unknown[]) => void): unknown;
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string, mode: string, ttl: number): Promise<unknown>;
+    del(key: string): Promise<number>;
+    quit(): Promise<"OK">;
+};
+
+const redis = new RedisCtor(env.redisUrl, {
     maxRetriesPerRequest: 1,
     retryStrategy: (times: number) => {
         if (times >= 3) {
