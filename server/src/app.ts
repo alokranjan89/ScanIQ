@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(requestIdMiddleware);
 app.use(requestLoggerMiddleware);
 
-app.use(healthRoutes);
+app.use("/api/v1", healthRoutes);
 app.use("/api/v1/products", productRoutes);
 
 
