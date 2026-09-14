@@ -3,11 +3,13 @@ export const isValidBarcode = (barcode: string): boolean => {
         return false;
     }
 
-    if (!/^\d+$/.test(barcode)) {
+    const normalizedBarcode = barcode.trim();
+
+    if (!/^\d+$/.test(normalizedBarcode)) {
         return false;
     }
 
-    const validLengths = [8, 12, 13];
+    const validLengths = new Set([8, 12, 13]);
 
-    return validLengths.includes(barcode.length);
+    return validLengths.has(normalizedBarcode.length);
 };
