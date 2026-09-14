@@ -1,14 +1,23 @@
 import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import { env } from "./config/env.js";
 import healthRoutes from "./routes/health.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import { notFoundMiddleware } from "./middleware/not-found.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { requestIdMiddleware } from "./middleware/request-id.middleware.js";
 import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
-import helmet from "helmet";
+
 
 const app = express();
 app.use(helmet());
+app.use(
+    cors({
+       origin: env.clientUrl,
+        credentials: true,
+    })
+);
 
 app.use(express.json());
 app.use(requestIdMiddleware);
