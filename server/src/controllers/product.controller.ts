@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { getProductByBarcode } from "../services/product.service.js";
-import { isValidBarcode } from "../validators/barcode.validator.js";
 import { AppError } from "../utils/app-error.js";
 
 export const getProduct = async (
@@ -13,16 +12,9 @@ export const getProduct = async (
         const barcode = Array.isArray(rawBarcode)
             ? rawBarcode[0]
             : rawBarcode;
+        const normalizedBarcode = barcode.trim();
 
-        if (!isValidBarcode(barcode)) {
-            throw new AppError(
-                400,
-                "INVALID_BARCODE",
-                "Invalid barcode"
-            );
-        }
-
-        const product = await getProductByBarcode(barcode);
+        const product = await getProductByBarcode(normalizedBarcode);
 
         if (!product) {
             throw new AppError(

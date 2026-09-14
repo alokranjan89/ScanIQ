@@ -23,7 +23,8 @@
     "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
     "pg": "^8.23.0",
-    "prisma": "^7.10.0"
+    "prisma": "^7.10.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

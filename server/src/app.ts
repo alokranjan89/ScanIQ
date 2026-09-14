@@ -11,6 +11,7 @@ import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.
 import { apiRateLimiter } from "./middleware/rate-limit.middleware.js";
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
     cors({
@@ -19,7 +20,7 @@ app.use(
     })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(requestIdMiddleware);
 app.use(requestLoggerMiddleware);
 app.use(apiRateLimiter);

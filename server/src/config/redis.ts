@@ -1,11 +1,7 @@
-import * as RedisModule from "ioredis";
+import { Redis } from "ioredis";
 import { env } from "./env.js";
 
-const RedisCtor =
-    (RedisModule as any).Redis ??
-    (RedisModule as any).default;
-
-const redis = new RedisCtor(env.redisUrl, {
+const redis = new Redis(env.redisUrl, {
     maxRetriesPerRequest: 1,
     retryStrategy: (times: number) => {
         if (times >= 3) {
