@@ -8,7 +8,7 @@ import { notFoundMiddleware } from "./middleware/not-found.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { requestIdMiddleware } from "./middleware/request-id.middleware.js";
 import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
-
+import { apiRateLimiter } from "./middleware/rate-limit.middleware.js";
 
 const app = express();
 app.use(helmet());
@@ -22,6 +22,8 @@ app.use(
 app.use(express.json());
 app.use(requestIdMiddleware);
 app.use(requestLoggerMiddleware);
+app.use(apiRateLimiter);
+
 
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1/products", productRoutes);
