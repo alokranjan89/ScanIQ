@@ -1,3 +1,5 @@
+import { Prisma } from "../generated/prisma/client.js";
+
 export interface ExternalProductPrice {
     amount: number;
     priceType: string;
@@ -10,6 +12,7 @@ export interface ExternalProductPrice {
 export interface ProductSourceInfo {
     provider: string;
     sourceUrl?: string;
+    rawData?: Prisma.InputJsonValue;
     isPrimary?: boolean;
 }
 

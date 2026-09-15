@@ -15,87 +15,91 @@ test(
         const originalFetch =
             globalThis.fetch;
 
+        const mockResponse = {
+            status: 1,
+
+            product: {
+                product_name:
+                    " Test Food ",
+
+                brands:
+                    " Test Brand ",
+
+                categories:
+                    "Food, Snacks",
+
+                generic_name:
+                    "Test snack",
+
+                image_url:
+                    "https://example.com/image.jpg",
+
+                manufacturers:
+                    "Test Manufacturer",
+
+                countries:
+                    "United States",
+
+                ingredients_text:
+                    "Sugar, Cocoa (contains milk), Salt",
+
+                packaging:
+                    "Aluminium-can",
+
+                quantity:
+                    "500 g",
+
+                allergens:
+                    "en:milk",
+
+                traces:
+                    "en:nuts",
+
+                nutriscore_grade:
+                    "b",
+
+                nova_group:
+                    4,
+
+                stores:
+                    "Target",
+
+                nutriments: {
+                    "energy-kcal_100g":
+                        100,
+
+                    proteins_100g:
+                        2,
+
+                    carbohydrates_100g:
+                        20,
+
+                    fat_100g:
+                        3,
+
+                    "saturated-fat_100g":
+                        1,
+
+                    sugars_100g:
+                        10,
+
+                    fiber_100g:
+                        2,
+
+                    salt_100g:
+                        0.5,
+
+                    sodium_100g:
+                        0.2,
+                },
+            },
+        };
+
         globalThis.fetch = async () => {
             return new Response(
-                JSON.stringify({
-                    status: 1,
-
-                    product: {
-                        product_name:
-                            " Test Food ",
-
-                        brands:
-                            " Test Brand ",
-
-                        categories:
-                            "Food, Snacks",
-
-                        generic_name:
-                            "Test snack",
-
-                        image_url:
-                            "https://example.com/image.jpg",
-
-                        manufacturers:
-                            "Test Manufacturer",
-
-                        countries:
-                            "United States",
-
-                        ingredients_text:
-                            "Sugar, Cocoa (contains milk), Salt",
-
-                        packaging:
-                            "Aluminium-can",
-
-                        quantity:
-                            "500 g",
-
-                        allergens:
-                            "en:milk",
-
-                        traces:
-                            "en:nuts",
-
-                        nutriscore_grade:
-                            "b",
-
-                        nova_group:
-                            4,
-
-                        stores:
-                            "Target",
-
-                        nutriments: {
-                            "energy-kcal_100g":
-                                100,
-
-                            proteins_100g:
-                                2,
-
-                            carbohydrates_100g:
-                                20,
-
-                            fat_100g:
-                                3,
-
-                            "saturated-fat_100g":
-                                1,
-
-                            sugars_100g:
-                                10,
-
-                            fiber_100g:
-                                2,
-
-                            salt_100g:
-                                0.5,
-
-                            sodium_100g:
-                                0.2,
-                        },
-                    },
-                })
+                JSON.stringify(
+                    mockResponse
+                )
             );
         };
 
@@ -197,25 +201,35 @@ test(
             assert.deepEqual(
                 product.nutrition,
                 {
-                    calories: 100,
+                    calories:
+                        100,
 
-                    protein: 2,
+                    protein:
+                        2,
 
-                    carbohydrates: 20,
+                    carbohydrates:
+                        20,
 
-                    fat: 3,
+                    fat:
+                        3,
 
-                    saturatedFat: 1,
+                    saturatedFat:
+                        1,
 
-                    sugars: 10,
+                    sugars:
+                        10,
 
-                    fiber: 2,
+                    fiber:
+                        2,
 
-                    salt: 0.5,
+                    salt:
+                        0.5,
 
-                    sodium: 0.2,
+                    sodium:
+                        0.2,
 
-                    unit: "per_100g",
+                    unit:
+                        "per_100g",
 
                     source:
                         "OpenFoodFacts",
@@ -242,7 +256,11 @@ test(
                         sourceUrl:
                             "https://world.openfoodfacts.org/product/12345678",
 
-                        isPrimary: true,
+                        rawData:
+                            mockResponse,
+
+                        isPrimary:
+                            true,
                     },
                 ]
             );

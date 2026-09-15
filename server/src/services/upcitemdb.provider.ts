@@ -40,14 +40,15 @@ interface UPCItemDBResponse {
     items?: UPCItemDBItem[];
 }
 
-export class UPCItemDBProvider
-    implements ProductProvider
-{
+export class UPCItemDBProvider implements ProductProvider {
     async getProductByBarcode(
         barcode: string
     ): Promise<ExternalProduct | null> {
+        const encodedBarcode =
+            encodeURIComponent(barcode);
+
         const url =
-            `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`;
+            `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodedBarcode}`;
 
         let response: Response;
 
@@ -92,7 +93,7 @@ export class UPCItemDBProvider
         try {
             data =
                 (await response.json()) as UPCItemDBResponse;
-        } catch (error) {
+        } catch {
             throw new ProviderError(
                 "UPCitemdb returned invalid JSON",
                 "UPCitemdb"
@@ -105,35 +106,35 @@ export class UPCItemDBProvider
             return null;
         }
 
-        const attributes: Record<
-            string,
-            string
-        > = {};
+        const attributes: Record<string, string> = {};
 
         if (item.model) {
-            attributes.model = item.model;
+            attributes.model =
+                item.model.trim();
         }
 
         if (item.color) {
-            attributes.color = item.color;
+            attributes.color =
+                item.color.trim();
         }
 
         if (item.size) {
-            attributes.size = item.size;
+            attributes.size =
+                item.size.trim();
         }
 
         if (item.dimension) {
             attributes.dimension =
-                item.dimension;
+                item.dimension.trim();
         }
 
         if (item.weight) {
             attributes.weight =
-                item.weight;
+                item.weight.trim();
         }
 
-        const prices = (item.offers ?? [])
-            .flatMap((offer) => {
+        const prices = (item.offers ?? []).flatMap(
+            (offer) => {
                 const result: Array<{
                     amount: number;
                     priceType: string;
@@ -144,16 +145,15 @@ export class UPCItemDBProvider
                 }> = [];
 
                 if (
-                    typeof offer.price ===
-                        "number" &&
+                    typeof offer.price === "number" &&
+                    Number.isFinite(offer.price) &&
                     offer.price >= 0
                 ) {
                     result.push({
                         amount: offer.price,
                         priceType: "SALE",
                         currency:
-                            offer.currency ||
-                            "USD",
+                            offer.currency || "USD",
                         merchant:
                             offer.merchant,
                         source:
@@ -164,8 +164,10 @@ export class UPCItemDBProvider
                 }
 
                 if (
-                    typeof offer.list_price ===
-                        "number" &&
+                    typeof offer.list_price === "number" &&
+                    Number.isFinite(
+                        offer.list_price
+                    ) &&
                     offer.list_price >= 0
                 ) {
                     result.push({
@@ -173,8 +175,7 @@ export class UPCItemDBProvider
                             offer.list_price,
                         priceType: "LIST",
                         currency:
-                            offer.currency ||
-                            "USD",
+                            offer.currency || "USD",
                         merchant:
                             offer.merchant,
                         source:
@@ -185,7 +186,11 @@ export class UPCItemDBProvider
                 }
 
                 return result;
-            });
+            }
+        );
+
+        const sourceUrl =
+            `https://www.upcitemdb.com/upc/${encodedBarcode}`;
 
         return {
             barcode,
@@ -222,15 +227,26 @@ export class UPCItemDBProvider
                     ? prices
                     : undefined,
 
-            source: "UPCitemdb",
-            sourceUrl:
-                `https://www.upcitemdb.com/upc/${barcode}`,
-            sources: [{
-                provider: "UPCitemdb",
-                sourceUrl:
-                    `https://www.upcitemdb.com/upc/${barcode}`,
-                isPrimary: true,
-            }],
+            source:
+                "UPCitemdb",
+
+            sourceUrl,
+
+            sources: [
+                {
+                    provider:
+                        "UPCitemdb",
+
+                    sourceUrl,
+
+                    rawData:
+                        JSON.parse(
+                            JSON.stringify(data)
+                        ),
+
+                    isPrimary: true,
+                },
+            ],
         };
     }
 }

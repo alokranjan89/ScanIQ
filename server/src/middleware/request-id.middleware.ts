@@ -22,8 +22,7 @@ export const requestIdMiddleware = (
             ? incomingRequestId
             : randomUUID();
 
-    req.headers["x-request-id"] =
-        requestId;
+    req.requestId = requestId;
 
     res.setHeader(
         "X-Request-ID",

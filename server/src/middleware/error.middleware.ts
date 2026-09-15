@@ -10,11 +10,6 @@ export const errorMiddleware = (
     _req: Request,
     res: Response
 ) => {
-    console.error(
-        "Unhandled error:",
-        error
-    );
-
     if (
         error instanceof SyntaxError &&
         typeof error === "object" &&
@@ -40,6 +35,11 @@ export const errorMiddleware = (
             },
         });
     }
+
+    console.error(
+        "Unhandled error:",
+        error
+    );
 
     return res.status(500).json({
         error: {

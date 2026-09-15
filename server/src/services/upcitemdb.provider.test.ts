@@ -7,39 +7,41 @@ import { ProviderError } from "../utils/provider-error.js";
 test("UPCitemdb maps product data correctly", async () => {
     const originalFetch = globalThis.fetch;
 
-    globalThis.fetch = async () => {
-        return new Response(
-            JSON.stringify({
-                code: "OK",
-                total: 1,
-                items: [
+    const mockResponse = {
+        code: "OK",
+        total: 1,
+        items: [
+            {
+                title: " Test Product ",
+                brand: " Test Brand ",
+                category: "Food",
+                description: " Test description ",
+                images: [
+                    " https://example.com/image.jpg ",
+                ],
+                manufacturer: "Manufacturer",
+                country: "US",
+                model: "MODEL-123",
+                color: "Red",
+                size: "500g",
+                dimension: "10x10x10",
+                weight: "500g",
+                offers: [
                     {
-                        title: " Test Product ",
-                        brand: " Test Brand ",
-                        category: "Food",
-                        description: " Test description ",
-                        images: [
-                            " https://example.com/image.jpg ",
-                        ],
-                        manufacturer: "Manufacturer",
-                        country: "US",
-                        model: "MODEL-123",
-                        color: "Red",
-                        size: "500g",
-                        dimension: "10x10x10",
-                        weight: "500g",
-                        offers: [
-                            {
-                                merchant: "Shop",
-                                currency: "USD",
-                                availability: "In Stock",
-                                price: 10,
-                                list_price: 15,
-                            },
-                        ],
+                        merchant: "Shop",
+                        currency: "USD",
+                        availability: "In Stock",
+                        price: 10,
+                        list_price: 15,
                     },
                 ],
-            })
+            },
+        ],
+    };
+
+    globalThis.fetch = async () => {
+        return new Response(
+            JSON.stringify(mockResponse)
         );
     };
 
@@ -137,8 +139,12 @@ test("UPCitemdb maps product data correctly", async () => {
             [
                 {
                     provider: "UPCitemdb",
+
                     sourceUrl:
                         "https://www.upcitemdb.com/upc/12345678",
+
+                    rawData: mockResponse,
+
                     isPrimary: true,
                 },
             ]

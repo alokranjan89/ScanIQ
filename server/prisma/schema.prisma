@@ -40,13 +40,19 @@ model Product {
   sources     ProductSource[]
   scans       Scan[]
   favorites   Favorite[]
+
+  @@index([modelNumber])
+  @@index([name])
+  @@index([brand])
 }
+
 
 model ProductSource {
   id        Int      @id @default(autoincrement())
   productId Int
   provider  String
   sourceUrl String?
+  rawData   Json?
   isPrimary Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,7 +63,6 @@ model ProductSource {
   @@index([productId])
   @@index([provider])
 }
-
 model ProductIngredient {
   id          Int     @id @default(autoincrement())
   productId   Int

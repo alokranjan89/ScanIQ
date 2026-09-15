@@ -46,14 +46,14 @@ interface OpenFoodFactsResponse {
     };
 }
 
-export class OpenFoodFactsProvider
-    implements ProductProvider
-{
+export class OpenFoodFactsProvider implements ProductProvider {
     async getProductByBarcode(
         barcode: string
     ): Promise<ExternalProduct | null> {
+        const encodedBarcode = encodeURIComponent(barcode);
+
         const url =
-            `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`;
+            `https://world.openfoodfacts.org/api/v2/product/${encodedBarcode}.json`;
 
         let response: Response;
 
@@ -98,7 +98,7 @@ export class OpenFoodFactsProvider
         try {
             data =
                 (await response.json()) as OpenFoodFactsResponse;
-        } catch (error) {
+        } catch {
             throw new ProviderError(
                 "Open Food Facts returned invalid JSON",
                 "OpenFoodFacts"
@@ -114,44 +114,43 @@ export class OpenFoodFactsProvider
 
         const product = data.product;
 
-        const attributes: Record<
-            string,
-            string
-        > = {};
+        const attributes: Record<string, string> = {};
 
         if (product.packaging) {
             attributes.packaging =
-                product.packaging;
+                product.packaging.trim();
         }
 
         if (product.quantity) {
             attributes.package_size =
-                product.quantity;
+                product.quantity.trim();
         }
 
         if (product.generic_name) {
             attributes.generic_name =
-                product.generic_name;
+                product.generic_name.trim();
         }
 
         if (product.allergens) {
             attributes.allergens =
-                product.allergens;
+                product.allergens.trim();
         }
 
         if (product.traces) {
             attributes.traces =
-                product.traces;
+                product.traces.trim();
         }
 
         if (product.nutriscore_grade) {
             attributes.nutri_score =
-                product.nutriscore_grade.toUpperCase();
+                product.nutriscore_grade
+                    .trim()
+                    .toUpperCase();
         }
 
         if (
-            typeof product.nova_group ===
-            "number"
+            typeof product.nova_group === "number" &&
+            Number.isFinite(product.nova_group)
         ) {
             attributes.nova_group =
                 String(product.nova_group);
@@ -159,16 +158,14 @@ export class OpenFoodFactsProvider
 
         if (product.stores) {
             attributes.stores =
-                product.stores;
+                product.stores.trim();
         }
 
         const ingredientsText =
             product.ingredients_text?.trim();
 
         const ingredients =
-            parseIngredients(
-                ingredientsText
-            );
+            parseIngredients(ingredientsText);
 
         const nutriments =
             product.nutriments;
@@ -177,7 +174,8 @@ export class OpenFoodFactsProvider
             nutriments &&
             Object.values(nutriments).some(
                 (value) =>
-                    typeof value === "number"
+                    typeof value === "number" &&
+                    Number.isFinite(value)
             );
 
         const nutrition = hasNutrition
@@ -186,22 +184,30 @@ export class OpenFoodFactsProvider
                       nutriments[
                           "energy-kcal_100g"
                       ],
+
                   protein:
                       nutriments.proteins_100g,
+
                   carbohydrates:
                       nutriments.carbohydrates_100g,
+
                   fat:
                       nutriments.fat_100g,
+
                   saturatedFat:
                       nutriments[
                           "saturated-fat_100g"
                       ],
+
                   sugars:
                       nutriments.sugars_100g,
+
                   fiber:
                       nutriments.fiber_100g,
+
                   salt:
                       nutriments.salt_100g,
+
                   sodium:
                       nutriments.sodium_100g,
 
@@ -210,6 +216,9 @@ export class OpenFoodFactsProvider
                   source: "OpenFoodFacts",
               }
             : undefined;
+
+        const sourceUrl =
+            `https://world.openfoodfacts.org/product/${encodedBarcode}`;
 
         return {
             barcode,
@@ -245,15 +254,26 @@ export class OpenFoodFactsProvider
 
             nutrition,
 
-            source: "OpenFoodFacts",
-            sourceUrl:
-                `https://world.openfoodfacts.org/product/${barcode}`,
-            sources: [{
-                provider: "OpenFoodFacts",
-                sourceUrl:
-                    `https://world.openfoodfacts.org/product/${barcode}`,
-                isPrimary: true,
-            }],
+            source:
+                "OpenFoodFacts",
+
+            sourceUrl,
+
+            sources: [
+                {
+                    provider:
+                        "OpenFoodFacts",
+
+                    sourceUrl,
+
+                    rawData:
+                        JSON.parse(
+                            JSON.stringify(data)
+                        ),
+
+                    isPrimary: true,
+                },
+            ],
         };
     }
 }

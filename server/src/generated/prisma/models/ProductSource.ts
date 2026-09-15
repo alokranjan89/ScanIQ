@@ -61,6 +61,7 @@ export type ProductSourceCountAggregateOutputType = {
   productId: number
   provider: number
   sourceUrl: number
+  rawData: number
   isPrimary: number
   createdAt: number
   updatedAt: number
@@ -103,6 +104,7 @@ export type ProductSourceCountAggregateInputType = {
   productId?: true
   provider?: true
   sourceUrl?: true
+  rawData?: true
   isPrimary?: true
   createdAt?: true
   updatedAt?: true
@@ -200,6 +202,7 @@ export type ProductSourceGroupByOutputType = {
   productId: number
   provider: string
   sourceUrl: string | null
+  rawData: runtime.JsonValue | null
   isPrimary: boolean
   createdAt: Date
   updatedAt: Date
@@ -233,6 +236,7 @@ export type ProductSourceWhereInput = {
   productId?: Prisma.IntFilter<"ProductSource"> | number
   provider?: Prisma.StringFilter<"ProductSource"> | string
   sourceUrl?: Prisma.StringNullableFilter<"ProductSource"> | string | null
+  rawData?: Prisma.JsonNullableFilter<"ProductSource">
   isPrimary?: Prisma.BoolFilter<"ProductSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
@@ -244,6 +248,7 @@ export type ProductSourceOrderByWithRelationInput = {
   productId?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rawData?: Prisma.SortOrderInput | Prisma.SortOrder
   isPrimary?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -259,6 +264,7 @@ export type ProductSourceWhereUniqueInput = Prisma.AtLeast<{
   productId?: Prisma.IntFilter<"ProductSource"> | number
   provider?: Prisma.StringFilter<"ProductSource"> | string
   sourceUrl?: Prisma.StringNullableFilter<"ProductSource"> | string | null
+  rawData?: Prisma.JsonNullableFilter<"ProductSource">
   isPrimary?: Prisma.BoolFilter<"ProductSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
@@ -270,6 +276,7 @@ export type ProductSourceOrderByWithAggregationInput = {
   productId?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rawData?: Prisma.SortOrderInput | Prisma.SortOrder
   isPrimary?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -288,6 +295,7 @@ export type ProductSourceScalarWhereWithAggregatesInput = {
   productId?: Prisma.IntWithAggregatesFilter<"ProductSource"> | number
   provider?: Prisma.StringWithAggregatesFilter<"ProductSource"> | string
   sourceUrl?: Prisma.StringNullableWithAggregatesFilter<"ProductSource"> | string | null
+  rawData?: Prisma.JsonNullableWithAggregatesFilter<"ProductSource">
   isPrimary?: Prisma.BoolWithAggregatesFilter<"ProductSource"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ProductSource"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ProductSource"> | Date | string
@@ -296,6 +304,7 @@ export type ProductSourceScalarWhereWithAggregatesInput = {
 export type ProductSourceCreateInput = {
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -307,6 +316,7 @@ export type ProductSourceUncheckedCreateInput = {
   productId: number
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -315,6 +325,7 @@ export type ProductSourceUncheckedCreateInput = {
 export type ProductSourceUpdateInput = {
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -326,6 +337,7 @@ export type ProductSourceUncheckedUpdateInput = {
   productId?: Prisma.IntFieldUpdateOperationsInput | number
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -336,6 +348,7 @@ export type ProductSourceCreateManyInput = {
   productId: number
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -344,6 +357,7 @@ export type ProductSourceCreateManyInput = {
 export type ProductSourceUpdateManyMutationInput = {
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -354,6 +368,7 @@ export type ProductSourceUncheckedUpdateManyInput = {
   productId?: Prisma.IntFieldUpdateOperationsInput | number
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -379,6 +394,7 @@ export type ProductSourceCountOrderByAggregateInput = {
   productId?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   sourceUrl?: Prisma.SortOrder
+  rawData?: Prisma.SortOrder
   isPrimary?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -463,6 +479,7 @@ export type BoolFieldUpdateOperationsInput = {
 export type ProductSourceCreateWithoutProductInput = {
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -472,6 +489,7 @@ export type ProductSourceUncheckedCreateWithoutProductInput = {
   id?: number
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -511,6 +529,7 @@ export type ProductSourceScalarWhereInput = {
   productId?: Prisma.IntFilter<"ProductSource"> | number
   provider?: Prisma.StringFilter<"ProductSource"> | string
   sourceUrl?: Prisma.StringNullableFilter<"ProductSource"> | string | null
+  rawData?: Prisma.JsonNullableFilter<"ProductSource">
   isPrimary?: Prisma.BoolFilter<"ProductSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSource"> | Date | string
@@ -520,6 +539,7 @@ export type ProductSourceCreateManyProductInput = {
   id?: number
   provider: string
   sourceUrl?: string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -528,6 +548,7 @@ export type ProductSourceCreateManyProductInput = {
 export type ProductSourceUpdateWithoutProductInput = {
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -537,6 +558,7 @@ export type ProductSourceUncheckedUpdateWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -546,6 +568,7 @@ export type ProductSourceUncheckedUpdateManyWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   provider?: Prisma.StringFieldUpdateOperationsInput | string
   sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rawData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isPrimary?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -558,6 +581,7 @@ export type ProductSourceSelect<ExtArgs extends runtime.Types.Extensions.Interna
   productId?: boolean
   provider?: boolean
   sourceUrl?: boolean
+  rawData?: boolean
   isPrimary?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -569,6 +593,7 @@ export type ProductSourceSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   productId?: boolean
   provider?: boolean
   sourceUrl?: boolean
+  rawData?: boolean
   isPrimary?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -580,6 +605,7 @@ export type ProductSourceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   productId?: boolean
   provider?: boolean
   sourceUrl?: boolean
+  rawData?: boolean
   isPrimary?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -591,12 +617,13 @@ export type ProductSourceSelectScalar = {
   productId?: boolean
   provider?: boolean
   sourceUrl?: boolean
+  rawData?: boolean
   isPrimary?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProductSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "provider" | "sourceUrl" | "isPrimary" | "createdAt" | "updatedAt", ExtArgs["result"]["productSource"]>
+export type ProductSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "provider" | "sourceUrl" | "rawData" | "isPrimary" | "createdAt" | "updatedAt", ExtArgs["result"]["productSource"]>
 export type ProductSourceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
 }
@@ -617,6 +644,7 @@ export type $ProductSourcePayload<ExtArgs extends runtime.Types.Extensions.Inter
     productId: number
     provider: string
     sourceUrl: string | null
+    rawData: runtime.JsonValue | null
     isPrimary: boolean
     createdAt: Date
     updatedAt: Date
@@ -1048,6 +1076,7 @@ export interface ProductSourceFieldRefs {
   readonly productId: Prisma.FieldRef<"ProductSource", 'Int'>
   readonly provider: Prisma.FieldRef<"ProductSource", 'String'>
   readonly sourceUrl: Prisma.FieldRef<"ProductSource", 'String'>
+  readonly rawData: Prisma.FieldRef<"ProductSource", 'Json'>
   readonly isPrimary: Prisma.FieldRef<"ProductSource", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"ProductSource", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ProductSource", 'DateTime'>

@@ -1,4 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import {
+    Request,
+    Response,
+    NextFunction,
+} from "express";
 
 export const requestLoggerMiddleware = (
     req: Request,
@@ -8,11 +12,11 @@ export const requestLoggerMiddleware = (
     const startTime = Date.now();
 
     res.on("finish", () => {
-        const duration = Date.now() - startTime;
-        const requestId = req.headers["x-request-id"];
+        const duration =
+            Date.now() - startTime;
 
         console.log(
-            `[${requestId}] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
+            `[${req.requestId}] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
         );
     });
 

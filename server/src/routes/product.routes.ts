@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
     getProduct,
+    getProductById,
     refreshProduct,
 } from "../controllers/product.controller.js";
 
@@ -39,6 +40,11 @@ router.post(
         "Invalid barcode"
     ),
     refreshProduct
+);
+
+router.get(
+    "/:productId",
+    getProductById
 );
 
 export default router;
