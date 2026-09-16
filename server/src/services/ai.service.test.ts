@@ -46,24 +46,34 @@ test("explainProduct uses the provided AI provider", async () => {
                 sodium: 0,
                 unit: "per_100g",
             },
+
+            question: "What is this product?",
         },
-        fakeProvider
+        fakeProvider,
     );
 
-    assert.equal(result, "Mock AI explanation");
-
-    assert.match(
-        receivedPrompt,
-        /LaCroix/
-    );
-
-    assert.match(
-        receivedPrompt,
-        /Carbonated water/
+    assert.equal(
+        result,
+        "Mock AI explanation",
     );
 
     assert.match(
         receivedPrompt,
-        /Use ONLY the product data provided below/
+        /LaCroix/,
+    );
+
+    assert.match(
+        receivedPrompt,
+        /Carbonated water/,
+    );
+
+    assert.match(
+        receivedPrompt,
+        /Use ONLY the product data provided below/,
+    );
+
+    assert.match(
+        receivedPrompt,
+        /What is this product\?/,
     );
 });

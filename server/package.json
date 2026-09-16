@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
 "scripts": {
-  "dev": "tsx watch src/server.ts",
-  "build": "tsc",
-  "start": "node dist/server.js",
-  "test": "node --import tsx --test \"src/**/*.test.ts\"",
-  "test:ai": "node --import tsx --test src/services/gemini.provider.test.ts",
-  "test:watch": "vitest"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "node --import tsx --test",
+    "test:ai": "node --import tsx --test src/services/gemini.provider.test.ts",
+    "test:watch": "vitest"
 },
   "keywords": [],
   "author": "",
@@ -38,6 +38,8 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.5.1",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^2.1.9"

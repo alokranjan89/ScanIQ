@@ -5,6 +5,11 @@ export type VerificationStatus =
     | "PARTIALLY_VERIFIED"
     | "UNABLE_TO_VERIFY";
 
+export type VerificationCheck =
+    | "MATCH"
+    | "MISMATCH"
+    | "UNKNOWN";
+
 export type VerificationResult = {
     status: VerificationStatus;
     verified: boolean;
@@ -17,16 +22,39 @@ export type VerificationResult = {
     }>;
 
     checks: {
-        barcodeMatch: boolean;
-        nameAgreement: boolean;
-        brandAgreement: boolean;
-        categoryAgreement: boolean;
-        manufacturerAgreement: boolean;
-        countryAgreement: boolean;
-        modelNumberAgreement: boolean;
+        barcodeMatch: VerificationCheck;
+        nameAgreement: VerificationCheck;
+        brandAgreement: VerificationCheck;
+        categoryAgreement: VerificationCheck;
+        manufacturerAgreement: VerificationCheck;
+        countryAgreement: VerificationCheck;
+        modelNumberAgreement: VerificationCheck;
     };
 
     message: string;
+};
+
+/**
+ * Only the fields required by the verification service.
+ *
+ * This keeps the service independent from the complete
+ * Prisma Product type and makes unit testing easier.
+ */
+type VerificationProduct = {
+    barcode: string;
+
+    sources: Array<{
+        provider: string;
+        sourceUrl: string | null;
+        isPrimary: boolean;
+        rawData: unknown;
+    }>;
+};
+
+export type VerificationProductRepository = {
+    findProductById(
+        productId: number,
+    ): Promise<VerificationProduct | null>;
 };
 
 type SourceRawData = {
@@ -54,7 +82,7 @@ type SourceRawData = {
 };
 
 const normalize = (
-    value: string | null | undefined
+    value: string | null | undefined,
 ): string | null => {
     if (!value) {
         return null;
@@ -66,25 +94,27 @@ const normalize = (
         .replace(/\s+/g, " ");
 };
 
-const valuesAgree = (
-    values: Array<string | null | undefined>
-): boolean => {
+const compareValues = (
+    values: Array<string | null | undefined>,
+): VerificationCheck => {
     const normalizedValues = values
         .map(normalize)
         .filter(
             (value): value is string =>
-                value !== null
+                value !== null,
         );
 
     if (normalizedValues.length < 2) {
-        return false;
+        return "UNKNOWN";
     }
 
-    return new Set(normalizedValues).size === 1;
+    return new Set(normalizedValues).size === 1
+        ? "MATCH"
+        : "MISMATCH";
 };
 
 const getSourceData = (
-    rawData: unknown
+    rawData: unknown,
 ): SourceRawData | null => {
     if (
         typeof rawData !== "object" ||
@@ -100,9 +130,11 @@ const extractSourceFields = (
     source: {
         provider: string;
         rawData: unknown;
-    }
+    },
 ) => {
-    const data = getSourceData(source.rawData);
+    const data = getSourceData(
+        source.rawData,
+    );
 
     if (!data) {
         return {
@@ -116,9 +148,10 @@ const extractSourceFields = (
         };
     }
 
-    if (
-        source.provider === "UPCitemdb"
-    ) {
+    /**
+     * UPCitemdb response.
+     */
+    if (source.provider === "UPCitemdb") {
         const item = data.items?.[0];
 
         return {
@@ -153,12 +186,14 @@ const extractSourceFields = (
         };
     }
 
+    /**
+     * Open Food Facts response.
+     */
     if (
         source.provider ===
         "OpenFoodFacts"
     ) {
-        const product =
-            data.product;
+        const product = data.product;
 
         return {
             barcode:
@@ -189,6 +224,9 @@ const extractSourceFields = (
         };
     }
 
+    /**
+     * Unknown provider.
+     */
     return {
         barcode: null,
         name: null,
@@ -200,33 +238,56 @@ const extractSourceFields = (
     };
 };
 
+const isMatch = (
+    check: VerificationCheck,
+): boolean => {
+    return check === "MATCH";
+};
+
+const hasEvidence = (
+    check: VerificationCheck,
+): boolean => {
+    return check !== "UNKNOWN";
+};
+
 export const verifyProduct = async (
-    productId: number
+    productId: number,
+    repository: VerificationProductRepository = {
+        findProductById:
+            findProductById as VerificationProductRepository["findProductById"],
+    },
 ): Promise<VerificationResult> => {
     const product =
-        await findProductById(productId);
+        await repository.findProductById(
+            productId,
+        );
 
     if (!product) {
         throw new Error(
-            "PRODUCT_NOT_FOUND"
+            "PRODUCT_NOT_FOUND",
         );
     }
 
     const sources = product.sources;
 
-    const sourceResponse = sources.map(
-        (source) => ({
-            provider:
-                source.provider,
+    const sourceResponse =
+        sources.map(
+            (source) => ({
+                provider:
+                    source.provider,
 
-            sourceUrl:
-                source.sourceUrl,
+                sourceUrl:
+                    source.sourceUrl,
 
-            isPrimary:
-                source.isPrimary,
-        })
-    );
+                isPrimary:
+                    source.isPrimary,
+            }),
+        );
 
+    /**
+     * No sources means there is no external
+     * evidence available.
+     */
     if (sources.length === 0) {
         return {
             status:
@@ -239,13 +300,13 @@ export const verifyProduct = async (
             sources: [],
 
             checks: {
-                barcodeMatch: false,
-                nameAgreement: false,
-                brandAgreement: false,
-                categoryAgreement: false,
-                manufacturerAgreement: false,
-                countryAgreement: false,
-                modelNumberAgreement: false,
+                barcodeMatch: "UNKNOWN",
+                nameAgreement: "UNKNOWN",
+                brandAgreement: "UNKNOWN",
+                categoryAgreement: "UNKNOWN",
+                manufacturerAgreement: "UNKNOWN",
+                countryAgreement: "UNKNOWN",
+                modelNumberAgreement: "UNKNOWN",
             },
 
             message:
@@ -253,10 +314,9 @@ export const verifyProduct = async (
         };
     }
 
-    /*
-     * We need at least two independent
-     * sources before we can perform
-     * cross-source verification.
+    /**
+     * One source gives us product evidence,
+     * but cannot provide cross-source verification.
      */
     if (sources.length < 2) {
         return {
@@ -272,114 +332,173 @@ export const verifyProduct = async (
                 sourceResponse,
 
             checks: {
-                barcodeMatch: false,
-                nameAgreement: false,
-                brandAgreement: false,
-                categoryAgreement: false,
-                manufacturerAgreement: false,
-                countryAgreement: false,
-                modelNumberAgreement: false,
+                barcodeMatch: "UNKNOWN",
+                nameAgreement: "UNKNOWN",
+                brandAgreement: "UNKNOWN",
+                categoryAgreement: "UNKNOWN",
+                manufacturerAgreement: "UNKNOWN",
+                countryAgreement: "UNKNOWN",
+                modelNumberAgreement: "UNKNOWN",
             },
 
             message:
-                "Only one product source is available, so the product cannot be fully verified.",
+                "Only one product source is available, so there is not enough independent evidence for full verification.",
         };
     }
 
+    /**
+     * Extract comparable information from
+     * every independent source.
+     */
     const extractedSources =
         sources.map(
             (source) =>
                 extractSourceFields(
-                    source
-                )
+                    source,
+                ),
         );
 
-    const barcodeMatch =
-        valuesAgree(
+    /**
+     * Barcode comparison between sources.
+     */
+    const barcodeSourceAgreement =
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.barcode
-            )
-        ) ||
-        extractedSources.every(
-            (source) =>
-                normalize(
-                    source.barcode
-                ) ===
-                normalize(
-                    product.barcode
-                )
+                    source.barcode,
+            ),
         );
 
+    const productBarcode =
+        normalize(product.barcode);
+
+    const availableBarcodes =
+        extractedSources
+            .map(
+                (source) =>
+                    normalize(
+                        source.barcode,
+                    ),
+            )
+            .filter(
+                (
+                    value,
+                ): value is string =>
+                    value !== null,
+            );
+
+    let barcodeMatch:
+        VerificationCheck;
+
+    if (
+        barcodeSourceAgreement ===
+        "MISMATCH"
+    ) {
+        barcodeMatch = "MISMATCH";
+    } else if (
+        barcodeSourceAgreement ===
+            "MATCH" &&
+        productBarcode !== null &&
+        availableBarcodes.every(
+            (barcode) =>
+                barcode ===
+                productBarcode,
+        )
+    ) {
+        barcodeMatch = "MATCH";
+    } else if (
+        barcodeSourceAgreement ===
+        "MATCH"
+    ) {
+        barcodeMatch = "MATCH";
+    } else {
+        barcodeMatch = "UNKNOWN";
+    }
+
+    /**
+     * Compare product identity fields.
+     */
     const nameAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.name
-            )
+                    source.name,
+            ),
         );
 
     const brandAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.brand
-            )
+                    source.brand,
+            ),
         );
 
     const categoryAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.category
-            )
+                    source.category,
+            ),
         );
 
     const manufacturerAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.manufacturer
-            )
+                    source.manufacturer,
+            ),
         );
 
     const countryAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.country
-            )
+                    source.country,
+            ),
         );
 
     const modelNumberAgreement =
-        valuesAgree(
+        compareValues(
             extractedSources.map(
                 (source) =>
-                    source.modelNumber
-            )
+                    source.modelNumber,
+            ),
         );
 
-    /*
-     * Core verification rule:
-     *
-     * Barcode + product identity must
-     * agree across independent sources.
-     *
-     * We do NOT claim counterfeit status.
-     */
-    const identityChecks = [
+    const checks = {
         barcodeMatch,
         nameAgreement,
         brandAgreement,
+        categoryAgreement,
+        manufacturerAgreement,
+        countryAgreement,
+        modelNumberAgreement,
+    };
+
+    /**
+     * Strong identity evidence.
+     *
+     * Barcode + at least two of:
+     * - name
+     * - brand
+     * - category
+     */
+    const identityChecks = [
+        nameAgreement,
+        brandAgreement,
+        categoryAgreement,
     ];
 
     const passedIdentityChecks =
         identityChecks.filter(
-            Boolean
+            isMatch,
         ).length;
 
+    /**
+     * Additional supporting evidence.
+     */
     const supportingChecks = [
-        categoryAgreement,
         manufacturerAgreement,
         countryAgreement,
         modelNumberAgreement,
@@ -387,17 +506,14 @@ export const verifyProduct = async (
 
     const passedSupportingChecks =
         supportingChecks.filter(
-            Boolean
+            isMatch,
         ).length;
 
-    /*
-     * Strong verification:
-     *
-     * Barcode must match and at least
-     * two identity fields must agree.
+    /**
+     * VERIFIED
      */
     if (
-        barcodeMatch &&
+        barcodeMatch === "MATCH" &&
         passedIdentityChecks >= 2
     ) {
         return {
@@ -411,32 +527,22 @@ export const verifyProduct = async (
             sources:
                 sourceResponse,
 
-            checks: {
-                barcodeMatch,
-                nameAgreement,
-                brandAgreement,
-                categoryAgreement,
-                manufacturerAgreement,
-                countryAgreement,
-                modelNumberAgreement,
-            },
+            checks,
 
             message:
                 "Product information is supported by multiple sources that agree on the product identity.",
         };
     }
 
-    /*
-     * Partial verification:
-     *
-     * Some source evidence agrees, but
-     * there isn't enough evidence for
-     * full verification.
+    /**
+     * PARTIALLY VERIFIED
      */
     if (
-        barcodeMatch ||
         passedIdentityChecks > 0 ||
-        passedSupportingChecks > 0
+        passedSupportingChecks > 0 ||
+        Object.values(checks).some(
+            hasEvidence,
+        )
     ) {
         return {
             status:
@@ -450,24 +556,15 @@ export const verifyProduct = async (
             sources:
                 sourceResponse,
 
-            checks: {
-                barcodeMatch,
-                nameAgreement,
-                brandAgreement,
-                categoryAgreement,
-                manufacturerAgreement,
-                countryAgreement,
-                modelNumberAgreement,
-            },
+            checks,
 
             message:
-                "Some product information agrees across available sources, but there is not enough consistent evidence for full verification.",
+                "Some product information is supported by available sources, but there is not enough consistent evidence for full verification.",
         };
     }
 
-    /*
-     * Sources exist but don't provide
-     * enough usable evidence.
+    /**
+     * UNABLE TO VERIFY
      */
     return {
         status:
@@ -481,17 +578,9 @@ export const verifyProduct = async (
         sources:
             sourceResponse,
 
-        checks: {
-            barcodeMatch,
-            nameAgreement,
-            brandAgreement,
-            categoryAgreement,
-            manufacturerAgreement,
-            countryAgreement,
-            modelNumberAgreement,
-        },
+        checks,
 
         message:
-            "Available product sources do not provide enough consistent evidence to verify this product.",
+            "Available product sources do not provide enough information to verify this product.",
     };
 };

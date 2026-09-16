@@ -1,519 +1,508 @@
-import { findProductById } from "../repositories/product.repository.js";
+import test from "node:test";
+import assert from "node:assert/strict";
 
-export type VerificationStatus =
-    | "VERIFIED"
-    | "PARTIALLY_VERIFIED"
-    | "UNABLE_TO_VERIFY";
+import {
+    verifyProduct,
+} from "./verification.service.js";
 
-export type VerificationResult = {
-    status: VerificationStatus;
-    verified: boolean;
-    sourceCount: number;
-
-    sources: Array<{
-        provider: string;
-        sourceUrl: string | null;
-        isPrimary: boolean;
-    }>;
-
-    checks: {
-        barcodeMatch: boolean;
-        nameAgreement: boolean;
-        brandAgreement: boolean;
-        categoryAgreement: boolean;
-        manufacturerAgreement: boolean;
-        countryAgreement: boolean;
-        modelNumberAgreement: boolean;
-    };
-
-    message: string;
+type FakeSource = {
+    provider: string;
+    sourceUrl: string | null;
+    isPrimary: boolean;
+    rawData: unknown;
 };
 
-type SourceRawData = {
-    items?: Array<{
-        ean?: string;
-        upc?: string;
-        title?: string;
-        brand?: string;
-        category?: string;
-        manufacturer?: string;
-        country?: string;
-        model?: string;
-    }>;
-
-    status?: number;
-
-    product?: {
-        code?: string;
-        product_name?: string;
-        brands?: string;
-        categories?: string;
-        manufacturers?: string;
-        countries?: string;
-    };
+type FakeProduct = {
+    id: number;
+    barcode: string;
+    name: string;
+    brand: string | null;
+    category: string | null;
+    manufacturer: string | null;
+    country: string | null;
+    modelNumber: string | null;
+    sources: FakeSource[];
 };
 
-const normalize = (
-    value: string | null | undefined
-): string | null => {
-    if (!value) {
-        return null;
-    }
-
-    return value
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
+type FakeRepository = {
+    findProductById: (
+        productId: number,
+    ) => Promise<FakeProduct | null>;
 };
 
-const valuesAgree = (
-    values: Array<string | null | undefined>
-): boolean => {
-    const normalizedValues = values
-        .map(normalize)
-        .filter(
-            (value): value is string =>
-                value !== null
-        );
-
-    if (normalizedValues.length < 2) {
-        return false;
-    }
-
-    return new Set(normalizedValues).size === 1;
-};
-
-const getSourceData = (
-    rawData: unknown
-): SourceRawData | null => {
-    if (
-        typeof rawData !== "object" ||
-        rawData === null
-    ) {
-        return null;
-    }
-
-    return rawData as SourceRawData;
-};
-
-const extractSourceFields = (
-    source: {
-        provider: string;
-        rawData: unknown;
-    }
-) => {
-    const data = getSourceData(source.rawData);
-
-    if (!data) {
-        return {
-            barcode: null,
-            name: null,
-            brand: null,
-            category: null,
-            manufacturer: null,
-            country: null,
-            modelNumber: null,
-        };
-    }
-
-    if (source.provider === "UPCitemdb") {
-        const item = data.items?.[0];
-
-        return {
-            barcode:
-                item?.ean ??
-                item?.upc ??
-                null,
-
-            name:
-                item?.title ??
-                null,
-
-            brand:
-                item?.brand ??
-                null,
-
-            category:
-                item?.category ??
-                null,
-
-            manufacturer:
-                item?.manufacturer ??
-                null,
-
-            country:
-                item?.country ??
-                null,
-
-            modelNumber:
-                item?.model ??
-                null,
-        };
-    }
-
-    if (source.provider === "OpenFoodFacts") {
-        const product = data.product;
-
-        return {
-            barcode:
-                product?.code ??
-                null,
-
-            name:
-                product?.product_name ??
-                null,
-
-            brand:
-                product?.brands ??
-                null,
-
-            category:
-                product?.categories ??
-                null,
-
-            manufacturer:
-                product?.manufacturers ??
-                null,
-
-            country:
-                product?.countries ??
-                null,
-
-            modelNumber: null,
-        };
-    }
-
+const createRepository = (
+    product: FakeProduct | null,
+): FakeRepository => {
     return {
-        barcode: null,
-        name: null,
-        brand: null,
-        category: null,
-        manufacturer: null,
-        country: null,
+        findProductById: async () =>
+            product,
+    };
+};
+
+const createProduct = (
+    sources: FakeSource[],
+): FakeProduct => {
+    return {
+        id: 1,
+        barcode: "012993441012",
+        name: "LaCroix Sparkling Water",
+        brand: "LaCroix",
+        category: "Beverages",
+        manufacturer: "National Beverage Corp",
+        country: "United States",
         modelNumber: null,
+        sources,
     };
 };
 
-type ProductRepository = {
-    findProductById: typeof findProductById;
-};
-
-export const verifyProduct = async (
-    productId: number,
-    repository: ProductRepository = {
-        findProductById,
-    }
-): Promise<VerificationResult> => {
-    const product =
-        await repository.findProductById(productId);
-
-    if (!product) {
-        throw new Error(
-            "PRODUCT_NOT_FOUND"
-        );
-    }
-
-    const sources = product.sources;
-
-    const sourceResponse = sources.map(
-        (source) => ({
-            provider:
-                source.provider,
-
-            sourceUrl:
-                source.sourceUrl,
-
-            isPrimary:
-                source.isPrimary,
-        })
-    );
-
-    if (sources.length === 0) {
-        return {
-            status:
-                "UNABLE_TO_VERIFY",
-
-            verified: false,
-
-            sourceCount: 0,
-
-            sources: [],
-
-            checks: {
-                barcodeMatch: false,
-                nameAgreement: false,
-                brandAgreement: false,
-                categoryAgreement: false,
-                manufacturerAgreement: false,
-                countryAgreement: false,
-                modelNumberAgreement: false,
-            },
-
-            message:
-                "Unable to verify this product because no product sources are available.",
-        };
-    }
-
-    /*
-     * One source gives us product information,
-     * but it is not enough for independent
-     * cross-source verification.
-     */
-    if (sources.length < 2) {
-        return {
-            status:
-                "PARTIALLY_VERIFIED",
-
-            verified: false,
-
-            sourceCount:
-                sources.length,
-
-            sources:
-                sourceResponse,
-
-            checks: {
-                barcodeMatch: false,
-                nameAgreement: false,
-                brandAgreement: false,
-                categoryAgreement: false,
-                manufacturerAgreement: false,
-                countryAgreement: false,
-                modelNumberAgreement: false,
-            },
-
-            message:
-                "Only one product source is available, so the product cannot be fully verified.",
-        };
-    }
-
-    const extractedSources =
-        sources.map(
-            (source) =>
-                extractSourceFields(source)
-        );
-
-    /*
-     * Barcode verification.
-     *
-     * First check whether independent
-     * sources agree with each other.
-     *
-     * If only one source contains a barcode,
-     * compare that barcode against the
-     * product barcode stored in our database.
-     */
-    const sourceBarcodes =
-        extractedSources.map(
-            (source) =>
-                normalize(source.barcode)
-        );
-
-    const availableBarcodes =
-        sourceBarcodes.filter(
-            (barcode): barcode is string =>
-                barcode !== null
-        );
-
-    const allSourcesMatchProductBarcode =
-        availableBarcodes.length > 0 &&
-        availableBarcodes.every(
-            (barcode) =>
-                barcode ===
-                normalize(product.barcode)
-        );
-
-    const independentBarcodesAgree =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.barcode
-            )
-        );
-
-    const barcodeMatch =
-        independentBarcodesAgree ||
-        allSourcesMatchProductBarcode;
-
-    /*
-     * Compare identity fields across
-     * independent sources.
-     */
-    const nameAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.name
-            )
-        );
-
-    const brandAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.brand
-            )
-        );
-
-    const categoryAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.category
-            )
-        );
-
-    const manufacturerAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.manufacturer
-            )
-        );
-
-    const countryAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.country
-            )
-        );
-
-    const modelNumberAgreement =
-        valuesAgree(
-            extractedSources.map(
-                (source) =>
-                    source.modelNumber
-            )
-        );
-
-    /*
-     * Core verification rule:
-     *
-     * Barcode must match and at least
-     * two identity fields must agree.
-     *
-     * We NEVER claim that disagreement
-     * means counterfeit.
-     */
-    const identityChecks = [
-        barcodeMatch,
-        nameAgreement,
-        brandAgreement,
-    ];
-
-    const passedIdentityChecks =
-        identityChecks.filter(
-            Boolean
-        ).length;
-
-    const supportingChecks = [
-        categoryAgreement,
-        manufacturerAgreement,
-        countryAgreement,
-        modelNumberAgreement,
-    ];
-
-    const passedSupportingChecks =
-        supportingChecks.filter(
-            Boolean
-        ).length;
-
-    /*
-     * Strong verification.
-     */
-    if (
-        barcodeMatch &&
-        passedIdentityChecks >= 2
-    ) {
-        return {
-            status: "VERIFIED",
-
-            verified: true,
-
-            sourceCount:
-                sources.length,
-
-            sources:
-                sourceResponse,
-
-            checks: {
-                barcodeMatch,
-                nameAgreement,
-                brandAgreement,
-                categoryAgreement,
-                manufacturerAgreement,
-                countryAgreement,
-                modelNumberAgreement,
-            },
-
-            message:
-                "Product information is supported by multiple sources that agree on the product identity.",
-        };
-    }
-
-    /*
-     * Partial verification.
-     */
-    if (
-        barcodeMatch ||
-        passedIdentityChecks > 0 ||
-        passedSupportingChecks > 0
-    ) {
-        return {
-            status:
-                "PARTIALLY_VERIFIED",
-
-            verified: false,
-
-            sourceCount:
-                sources.length,
-
-            sources:
-                sourceResponse,
-
-            checks: {
-                barcodeMatch,
-                nameAgreement,
-                brandAgreement,
-                categoryAgreement,
-                manufacturerAgreement,
-                countryAgreement,
-                modelNumberAgreement,
-            },
-
-            message:
-                "Some product information agrees across available sources, but there is not enough consistent evidence for full verification.",
-        };
-    }
-
-    /*
-     * Sources exist but do not provide
-     * enough usable evidence.
-     */
+const createUPCSource = (
+    overrides: Record<string, unknown> = {},
+): FakeSource => {
     return {
-        status:
-            "UNABLE_TO_VERIFY",
-
-        verified: false,
-
-        sourceCount:
-            sources.length,
-
-        sources:
-            sourceResponse,
-
-        checks: {
-            barcodeMatch,
-            nameAgreement,
-            brandAgreement,
-            categoryAgreement,
-            manufacturerAgreement,
-            countryAgreement,
-            modelNumberAgreement,
+        provider: "UPCitemdb",
+        sourceUrl:
+            "https://www.upcitemdb.com/",
+        isPrimary: true,
+        rawData: {
+            items: [
+                {
+                    ean: "012993441012",
+                    upc: "012993441012",
+                    title:
+                        "LaCroix Sparkling Water",
+                    brand: "LaCroix",
+                    category: "Beverages",
+                    manufacturer:
+                        "National Beverage Corp",
+                    country: "United States",
+                    model: undefined,
+                    ...overrides,
+                },
+            ],
         },
-
-        message:
-            "Available product sources do not provide enough consistent evidence to verify this product.",
     };
 };
+
+const createOFFSource = (
+    overrides: Record<string, unknown> = {},
+): FakeSource => {
+    return {
+        provider: "OpenFoodFacts",
+        sourceUrl:
+            "https://world.openfoodfacts.org/",
+        isPrimary: false,
+        rawData: {
+            product: {
+                code: "012993441012",
+                product_name:
+                    "LaCroix Sparkling Water",
+                brands: "LaCroix",
+                categories: "Beverages",
+                manufacturers:
+                    "National Beverage Corp",
+                countries: "United States",
+                ...overrides,
+            },
+        },
+    };
+};
+
+/**
+ * ----------------------------------------
+ * Product not found
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct throws PRODUCT_NOT_FOUND when product does not exist",
+    async () => {
+        const repository =
+            createRepository(null);
+
+        await assert.rejects(
+            () =>
+                verifyProduct(
+                    999,
+                    repository,
+                ),
+            (error: unknown) => {
+                return (
+                    error instanceof Error &&
+                    error.message ===
+                        "PRODUCT_NOT_FOUND"
+                );
+            },
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * No sources
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct returns UNKNOWN checks when no sources exist",
+    async () => {
+        const product =
+            createProduct([]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.status,
+            "UNABLE_TO_VERIFY",
+        );
+
+        assert.equal(
+            result.verified,
+            false,
+        );
+
+        assert.equal(
+            result.sourceCount,
+            0,
+        );
+
+        assert.equal(
+            result.checks.barcodeMatch,
+            "UNKNOWN",
+        );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "UNKNOWN",
+        );
+
+        assert.equal(
+            result.checks.brandAgreement,
+            "UNKNOWN",
+        );
+
+        assert.equal(
+            result.checks.categoryAgreement,
+            "UNKNOWN",
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * One source
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct returns UNKNOWN checks when only one source exists",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource(),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.status,
+            "PARTIALLY_VERIFIED",
+        );
+
+        assert.equal(
+            result.verified,
+            false,
+        );
+
+        assert.equal(
+            result.sourceCount,
+            1,
+        );
+
+        assert.equal(
+            result.checks.barcodeMatch,
+            "UNKNOWN",
+        );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "UNKNOWN",
+        );
+
+        assert.equal(
+            result.checks.brandAgreement,
+            "UNKNOWN",
+        );
+
+        assert.match(
+            result.message,
+            /one product source/i,
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * Two agreeing sources
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct returns VERIFIED when two sources agree",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource(),
+                createOFFSource(),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.status,
+            "VERIFIED",
+        );
+
+        assert.equal(
+            result.verified,
+            true,
+        );
+
+        assert.equal(
+            result.sourceCount,
+            2,
+        );
+
+        assert.equal(
+            result.checks.barcodeMatch,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.brandAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.categoryAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.manufacturerAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.countryAgreement,
+            "MATCH",
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * Mismatch
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct marks conflicting source fields as MISMATCH",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource({
+                    title:
+                        "LaCroix Sparkling Water",
+                    brand: "LaCroix",
+                }),
+
+                createOFFSource({
+                    product_name:
+                        "Different Sparkling Water",
+                    brands: "Different Brand",
+                }),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "MISMATCH",
+        );
+
+        assert.equal(
+            result.checks.brandAgreement,
+            "MISMATCH",
+        );
+
+        assert.equal(
+            result.status,
+            "PARTIALLY_VERIFIED",
+        );
+
+        assert.equal(
+            result.verified,
+            false,
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * Unknown field
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct returns UNKNOWN when a field is missing from sources",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource({
+                    title:
+                        "LaCroix Sparkling Water",
+                    manufacturer:
+                        undefined,
+                }),
+
+                createOFFSource({
+                    product_name:
+                        "LaCroix Sparkling Water",
+                    manufacturers:
+                        undefined,
+                }),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.manufacturerAgreement,
+            "UNKNOWN",
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * Barcode mismatch
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct marks different source barcodes as MISMATCH",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource({
+                    ean: "012993441012",
+                    upc: "012993441012",
+                }),
+
+                createOFFSource({
+                    code: "999999999999",
+                }),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.checks.barcodeMatch,
+            "MISMATCH",
+        );
+
+        assert.equal(
+            result.verified,
+            false,
+        );
+    },
+);
+
+/**
+ * ----------------------------------------
+ * Case and whitespace normalization
+ * ----------------------------------------
+ */
+test(
+    "verifyProduct treats case and whitespace differences as MATCH",
+    async () => {
+        const product =
+            createProduct([
+                createUPCSource({
+                    title:
+                        "  LaCroix   Sparkling Water ",
+                    brand:
+                        "  LACROIX ",
+                }),
+
+                createOFFSource({
+                    product_name:
+                        "lacroix sparkling water",
+                    brands: "LaCroix",
+                }),
+            ]);
+
+        const repository =
+            createRepository(product);
+
+        const result =
+            await verifyProduct(
+                1,
+                repository,
+            );
+
+        assert.equal(
+            result.checks.nameAgreement,
+            "MATCH",
+        );
+
+        assert.equal(
+            result.checks.brandAgreement,
+            "MATCH",
+        );
+    },
+);

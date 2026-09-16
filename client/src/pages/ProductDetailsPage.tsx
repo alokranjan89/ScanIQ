@@ -1,1217 +1,741 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+    Link,
+    useNavigate,
+    useParams,
+} from "react-router-dom";
 
 import {
-  getProductByBarcode,
-  type Product,
+    getProductByBarcode,
+} from "../services/product.service";
+
+import type {
+    Product,
 } from "../services/product.service";
 
 import {
-  getProductVerification,
-  type Verification,
-} from "../services/verification.service";
+    addFavorite,
+    getFavorites,
+    removeFavorite,
+} from "../api/favorites.api";
 
-/*
-|--------------------------------------------------------------------------
-| Local UI types
-|--------------------------------------------------------------------------
-|
-| Your API Product type intentionally contains some flexible fields.
-| Nutrition values are therefore treated as unknown by TypeScript.
-| We safely convert them before displaying them.
-|
-*/
-
-type NutritionData = {
-  calories?: number | null;
-  protein?: number | null;
-  carbohydrates?: number | null;
-  fat?: number | null;
-  saturatedFat?: number | null;
-  sugars?: number | null;
-  fiber?: number | null;
-  salt?: number | null;
-  sodium?: number | null;
-  unit?: string | null;
-  source?: string | null;
-};
-
-/*
-|--------------------------------------------------------------------------
-| Helper functions
-|--------------------------------------------------------------------------
-*/
-
-function getNutrition(
-  nutrition: Product["nutrition"],
-): NutritionData | null {
-  if (
-    typeof nutrition !== "object" ||
-    nutrition === null
-  ) {
-    return null;
-  }
-
-  return nutrition as NutritionData;
-}
-
-function formatNumber(
-  value: unknown,
-): string {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value)
-  ) {
-    return "Not available";
-  }
-
-  return String(value);
-}
-
-function formatPrice(
-  amount: number,
-  currency: string,
-): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount}`;
-  }
-}
-
-function formatAttributeKey(
-  key: string,
-): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase(),
-    );
-}
-
-function getVerificationLabel(
-  status: Verification["status"],
-): string {
-  switch (status) {
-    case "VERIFIED":
-      return "Verified";
-
-    case "PARTIALLY_VERIFIED":
-      return "Partially verified";
-
-    case "UNABLE_TO_VERIFY":
-      return "Unable to verify";
-
-    default:
-      return "Verification unavailable";
-  }
-}
-
-function getVerificationClasses(
-  status: Verification["status"],
-): string {
-  switch (status) {
-    case "VERIFIED":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-
-    case "PARTIALLY_VERIFIED":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-400";
-
-    case "UNABLE_TO_VERIFY":
-      return "border-slate-700 bg-slate-900 text-slate-400";
-
-    default:
-      return "border-slate-700 bg-slate-900 text-slate-400";
-  }
-}
-
-/*
-|--------------------------------------------------------------------------
-| Verification check row
-|--------------------------------------------------------------------------
-*/
-
-function VerificationCheckRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3">
-      <span className="text-sm text-slate-300">
-        {label}
-      </span>
-
-      {value ? (
-        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
-          ✓ Match
-        </span>
-      ) : (
-        <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-500">
-          No match
-        </span>
-      )}
-    </div>
-  );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Main page
-|--------------------------------------------------------------------------
-*/
+import {
+    useAuth,
+} from "../context/AuthContext";
 
 function ProductDetailsPage() {
-  const { barcode } =
-    useParams<{ barcode: string }>();
+    const { barcode } = useParams<{
+        barcode: string;
+    }>();
 
-  const [product, setProduct] =
-    useState<Product | null>(null);
+    const navigate = useNavigate();
 
-  const [verification, setVerification] =
-    useState<Verification | null>(null);
+    const {
+        user,
+        isLoading: isAuthLoading,
+    } = useAuth();
 
-  const [loading, setLoading] =
-    useState(true);
+    const [product, setProduct] =
+        useState<Product | null>(null);
 
-  const [verificationLoading, setVerificationLoading] =
-    useState(true);
+    const [isLoading, setIsLoading] =
+        useState(true);
 
-  const [error, setError] =
-    useState<string | null>(null);
+    const [error, setError] =
+        useState<string | null>(null);
 
-  const [verificationError, setVerificationError] =
-    useState<string | null>(null);
+    const [isFavorite, setIsFavorite] =
+        useState(false);
 
-  const [favorite, setFavorite] =
-    useState(false);
+    const [isFavoriteLoading, setIsFavoriteLoading] =
+        useState(false);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load product
-  |--------------------------------------------------------------------------
-  */
+    const [favoriteError, setFavoriteError] =
+        useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+    /*
+     * Load product.
+     */
+    useEffect(() => {
+        const loadProduct = async () => {
+            if (!barcode) {
+                setError(
+                    "Product barcode is missing.",
+                );
+                setIsLoading(false);
+                return;
+            }
 
-    async function loadProduct() {
-      if (!barcode) {
-        setError(
-          "No barcode was provided.",
+            try {
+                setIsLoading(true);
+                setError(null);
+
+                const result =
+                    await getProductByBarcode(
+                        barcode,
+                    );
+
+                setProduct(result);
+            } catch (err) {
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Unable to load product.",
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        void loadProduct();
+    }, [barcode]);
+
+    /*
+     * Check whether the current product
+     * is already in favorites.
+     */
+    useEffect(() => {
+        const loadFavoriteStatus =
+            async () => {
+                if (
+                    !user ||
+                    !product
+                ) {
+                    setIsFavorite(false);
+                    return;
+                }
+
+                try {
+                    const favorites =
+                        await getFavorites();
+
+                    const favoriteExists =
+                        favorites.some(
+                            (favorite) =>
+                                favorite.productId ===
+                                product.id,
+                        );
+
+                    setIsFavorite(
+                        favoriteExists,
+                    );
+                } catch {
+                    /*
+                     * Favorite status should not
+                     * prevent the product page
+                     * from being usable.
+                     */
+                    setIsFavorite(false);
+                }
+            };
+
+        void loadFavoriteStatus();
+    }, [user, product]);
+
+    const handleFavorite = async () => {
+        if (!product) {
+            return;
+        }
+
+        if (!user) {
+            navigate("/login", {
+                state: {
+                    from:
+                        barcode
+                            ? `/products/${barcode}`
+                            : "/",
+                },
+            });
+
+            return;
+        }
+
+        try {
+            setIsFavoriteLoading(true);
+            setFavoriteError(null);
+
+            if (isFavorite) {
+                await removeFavorite(
+                    product.id,
+                );
+
+                setIsFavorite(false);
+            } else {
+                await addFavorite(
+                    product.id,
+                );
+
+                setIsFavorite(true);
+            }
+        } catch (err) {
+            setFavoriteError(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to update favorite.",
+            );
+        } finally {
+            setIsFavoriteLoading(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <main className="mx-auto flex min-h-[70vh] max-w-6xl items-center justify-center px-4">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
+
+                    <p className="text-sm text-gray-600">
+                        Loading product...
+                    </p>
+                </div>
+            </main>
         );
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const result =
-          await getProductByBarcode(
-            barcode,
-          );
-
-        if (!cancelled) {
-          setProduct(result);
-        }
-      } catch (err) {
-        if (cancelled) {
-          return;
-        }
-
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError(
-            "Unable to load product.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
     }
 
-    loadProduct();
+    if (error) {
+        return (
+            <main className="mx-auto max-w-6xl px-4 py-10">
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+                    <h1 className="text-lg font-semibold text-red-800">
+                        Product unavailable
+                    </h1>
 
-    return () => {
-      cancelled = true;
-    };
-  }, [barcode]);
+                    <p className="mt-2 text-sm text-red-700">
+                        {error}
+                    </p>
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load verification
-  |--------------------------------------------------------------------------
-  */
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadVerification() {
-      if (!product?.id) {
-        setVerificationLoading(false);
-        return;
-      }
-
-      try {
-        setVerificationLoading(true);
-        setVerificationError(null);
-
-        const result =
-          await getProductVerification(
-            product.id,
-          );
-
-        if (!cancelled) {
-          setVerification(result);
-        }
-      } catch (err) {
-        if (cancelled) {
-          return;
-        }
-
-        if (err instanceof Error) {
-          setVerificationError(
-            err.message,
-          );
-        } else {
-          setVerificationError(
-            "Verification information is unavailable.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setVerificationLoading(false);
-        }
-      }
-    }
-
-    loadVerification();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product?.id]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | Derived values
-  |--------------------------------------------------------------------------
-  */
-
-  const category = useMemo(() => {
-    if (!product?.category) {
-      return [];
-    }
-
-    return product.category
-      .split(">")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }, [product?.category]);
-
-  const nutrition = useMemo(
-    () => getNutrition(product?.nutrition),
-    [product?.nutrition],
-  );
-
-  /*
-  |--------------------------------------------------------------------------
-  | Loading state
-  |--------------------------------------------------------------------------
-  */
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
-        <div className="mx-auto max-w-6xl">
-          <div className="animate-pulse space-y-6">
-            <div className="h-5 w-40 rounded bg-slate-800" />
-
-            <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
-              <div className="aspect-square rounded-3xl bg-slate-900" />
-
-              <div className="space-y-5">
-                <div className="h-5 w-32 rounded bg-slate-800" />
-
-                <div className="h-10 w-3/4 rounded bg-slate-800" />
-
-                <div className="h-24 rounded-2xl bg-slate-900" />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="h-20 rounded-2xl bg-slate-900" />
-                  <div className="h-20 rounded-2xl bg-slate-900" />
-                  <div className="h-20 rounded-2xl bg-slate-900" />
-                  <div className="h-20 rounded-2xl bg-slate-900" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Error state
-  |--------------------------------------------------------------------------
-  */
-
-  if (error || !product) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
-        <div className="mx-auto max-w-2xl">
-          <Link
-            to="/scan"
-            className="text-sm text-cyan-400 hover:text-cyan-300"
-          >
-            ← Scan another product
-          </Link>
-
-          <div className="mt-10 rounded-3xl border border-red-500/20 bg-red-500/5 p-8">
-            <div className="text-4xl">
-              ⚠️
-            </div>
-
-            <h1 className="mt-4 text-2xl font-bold">
-              Product unavailable
-            </h1>
-
-            <p className="mt-3 text-slate-400">
-              {error ??
-                "We could not load this product."}
-            </p>
-
-            <Link
-              to="/scan"
-              className="mt-6 inline-flex rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-slate-950 hover:bg-cyan-300"
-            >
-              Scan another product
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Page
-  |--------------------------------------------------------------------------
-  */
-
-  return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-
-        {/* --------------------------------------------------------------
-            Header
-        -------------------------------------------------------------- */}
-
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <Link
-            to="/scan"
-            className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
-          >
-            ← Scan another product
-          </Link>
-
-          <span className="hidden rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-400 sm:inline-flex">
-            ScanIQ
-          </span>
-        </div>
-
-        {/* --------------------------------------------------------------
-            Product hero
-        -------------------------------------------------------------- */}
-
-        <section className="grid gap-8 lg:grid-cols-[380px_1fr]">
-
-          {/* Product image */}
-
-          <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900">
-            <div className="flex aspect-square items-center justify-center p-6">
-
-              {product.imageUrl ? (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="text-6xl">
-                    📦
-                  </div>
-
-                  <p className="mt-4 text-sm text-slate-500">
-                    Product image unavailable
-                  </p>
-                </div>
-              )}
-
-            </div>
-          </div>
-
-          {/* Product summary */}
-
-          <div className="flex flex-col justify-center">
-
-            {product.brand && (
-              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400">
-                {product.brand}
-              </p>
-            )}
-
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
-              {product.name}
-            </h1>
-
-            {/* Category */}
-
-            {category.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {category.map(
-                  (item, index) => (
-                    <span
-                      key={`${item}-${index}`}
-                      className="rounded-full bg-slate-900 px-3 py-1.5 text-xs text-slate-400"
+                    <Link
+                        to="/"
+                        className="mt-5 inline-block rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
                     >
-                      {item}
-                    </span>
-                  ),
-                )}
-              </div>
-            )}
-
-            {/* Basic information */}
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-
-              <InfoCard
-                label="Barcode"
-                value={product.barcode}
-                mono
-              />
-
-              <InfoCard
-                label="Manufacturer"
-                value={
-                  product.manufacturer ??
-                  "Not available"
-                }
-              />
-
-              <InfoCard
-                label="Country"
-                value={
-                  product.country ??
-                  "Not available"
-                }
-              />
-
-              <InfoCard
-                label="Model number"
-                value={
-                  product.modelNumber ??
-                  "Not available"
-                }
-              />
-
-            </div>
-
-            {/* Actions */}
-
-            <div className="mt-6 flex flex-wrap gap-3">
-
-              <button
-                type="button"
-                onClick={() => {
-                  alert(
-                    "Ask AI will be connected next.",
-                  );
-                }}
-                className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
-              >
-                ✦ Ask AI
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  alert(
-                    "Product comparison will be connected next.",
-                  );
-                }}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-              >
-                ⇄ Compare
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setFavorite(
-                    (current) =>
-                      !current,
-                  )
-                }
-                className={`rounded-xl border px-5 py-3 text-sm font-semibold ${
-                  favorite
-                    ? "border-pink-500/30 bg-pink-500/10 text-pink-400"
-                    : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                {favorite
-                  ? "♥ Favorited"
-                  : "♡ Favorite"}
-              </button>
-
-            </div>
-          </div>
-        </section>
-
-        {/* --------------------------------------------------------------
-            Verification
-        -------------------------------------------------------------- */}
-
-        <section className="mt-10">
-
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-7">
-
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
-                  Verification
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold">
-                  Product verification
-                </h2>
-
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                  ScanIQ checks available product
-                  information across independent
-                  sources.
-                </p>
-
-                <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
-                  Unable to verify does not mean
-                  counterfeit. Verification only
-                  describes the available data
-                  evidence.
-                </p>
-              </div>
-
-              {verification && (
-                <span
-                  className={`inline-flex w-fit rounded-full border px-4 py-2 text-sm font-semibold ${getVerificationClasses(
-                    verification.status,
-                  )}`}
-                >
-                  {getVerificationLabel(
-                    verification.status,
-                  )}
-                </span>
-              )}
-
-            </div>
-
-            {/* Verification loading */}
-
-            {verificationLoading && (
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {Array.from({
-                  length: 6,
-                }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-12 animate-pulse rounded-xl bg-slate-950"
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Verification error */}
-
-            {!verificationLoading &&
-              verificationError && (
-                <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-4">
-                  <p className="text-sm text-slate-400">
-                    {verificationError}
-                  </p>
+                        Back to home
+                    </Link>
                 </div>
-              )}
+            </main>
+        );
+    }
 
-            {/* Verification result */}
+    if (!product) {
+        return null;
+    }
 
-            {!verificationLoading &&
-              !verificationError &&
-              verification && (
-                <>
-                  <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950 p-5">
+    const ingredients =
+        product.ingredients ?? [];
 
-                    <p className="text-sm leading-6 text-slate-300">
-                      {verification.message}
-                    </p>
+    const attributes =
+        product.attributes ?? [];
 
-                    <p className="mt-3 text-xs text-slate-500">
-                      Sources checked:{" "}
-                      {
-                        verification.sourceCount
-                      }
-                    </p>
+    const prices =
+        product.prices ?? [];
 
-                  </div>
+    const sources =
+        product.sources ?? [];
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+    const nutrition =
+        product.nutrition ?? null;
 
-                    <VerificationCheckRow
-                      label="Barcode"
-                      value={
-                        verification.checks
-                          .barcodeMatch
-                      }
-                    />
+    return (
+        <main className="mx-auto max-w-6xl px-4 py-8">
+            {/* Back */}
+            <Link
+                to="/"
+                className="text-sm font-medium text-gray-500 hover:text-gray-900"
+            >
+                ← Back
+            </Link>
 
-                    <VerificationCheckRow
-                      label="Product name"
-                      value={
-                        verification.checks
-                          .nameAgreement
-                      }
-                    />
+            {/* Product header */}
+            <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="grid gap-8 md:grid-cols-[280px_1fr]">
+                    {/* Image */}
+                    <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl bg-gray-100">
+                        {product.imageUrl ? (
+                            <img
+                                src={
+                                    product.imageUrl
+                                }
+                                alt={
+                                    product.name
+                                }
+                                className="max-h-[280px] w-full object-contain"
+                            />
+                        ) : (
+                            <span className="text-sm text-gray-400">
+                                No image available
+                            </span>
+                        )}
+                    </div>
 
-                    <VerificationCheckRow
-                      label="Brand"
-                      value={
-                        verification.checks
-                          .brandAgreement
-                      }
-                    />
+                    {/* Information */}
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">
+                            {product.brand ||
+                                "Unknown brand"}
+                        </p>
 
-                    <VerificationCheckRow
-                      label="Category"
-                      value={
-                        verification.checks
-                          .categoryAgreement
-                      }
-                    />
+                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+                            {product.name}
+                        </h1>
 
-                    <VerificationCheckRow
-                      label="Manufacturer"
-                      value={
-                        verification.checks
-                          .manufacturerAgreement
-                      }
-                    />
-
-                    <VerificationCheckRow
-                      label="Country"
-                      value={
-                        verification.checks
-                          .countryAgreement
-                      }
-                    />
-
-                    <VerificationCheckRow
-                      label="Model number"
-                      value={
-                        verification.checks
-                          .modelNumberAgreement
-                      }
-                    />
-
-                  </div>
-
-                  {/* Verification sources */}
-
-                  {verification.sources.length >
-                    0 && (
-                    <div className="mt-6">
-
-                      <p className="mb-3 text-sm font-semibold text-slate-300">
-                        Verification sources
-                      </p>
-
-                      <div className="space-y-2">
-
-                        {verification.sources.map(
-                          (
-                            source,
-                            index,
-                          ) => (
-                            <div
-                              key={`${source.provider}-${index}`}
-                              className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:flex-row sm:items-center"
-                            >
-                              <div className="flex items-center gap-3">
-
-                                <span className="text-sm font-semibold text-slate-200">
-                                  {
-                                    source.provider
-                                  }
-                                </span>
-
-                                {source.isPrimary && (
-                                  <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-400">
-                                    Primary
-                                  </span>
-                                )}
-
-                              </div>
-
-                              {source.sourceUrl && (
-                                <a
-                                  href={
-                                    source.sourceUrl
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs font-semibold text-cyan-400 hover:text-cyan-300"
-                                >
-                                  View source →
-                                </a>
-                              )}
-
-                            </div>
-                          ),
+                        {product.category && (
+                            <p className="mt-3 inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+                                {
+                                    product.category
+                                }
+                            </p>
                         )}
 
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                        {product.description && (
+                            <p className="mt-6 text-sm leading-7 text-gray-600">
+                                {
+                                    product.description
+                                }
+                            </p>
+                        )}
 
-          </div>
-        </section>
+                        {/* Actions */}
+                        <div className="mt-7 flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                onClick={
+                                    handleFavorite
+                                }
+                                disabled={
+                                    isFavoriteLoading ||
+                                    isAuthLoading
+                                }
+                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {isFavoriteLoading
+                                    ? "Updating..."
+                                    : isFavorite
+                                      ? "♥ Favorited"
+                                      : "♡ Favorite"}
+                            </button>
 
-        {/* --------------------------------------------------------------
-            Description
-        -------------------------------------------------------------- */}
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    navigate(
+                                        `/compare?productId1=${product.id}`,
+                                    )
+                                }
+                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+                            >
+                                Compare
+                            </button>
 
-        <section className="mt-8">
-          <SectionCard title="Description">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    navigate(
+                                        `/products/${product.barcode}/ai`,
+                                    )
+                                }
+                                className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+                            >
+                                Ask AI
+                            </button>
 
-            {product.description ? (
-              <p className="text-sm leading-7 text-slate-300">
-                {product.description}
-              </p>
-            ) : (
-              <EmptyText />
-            )}
-
-          </SectionCard>
-        </section>
-
-        {/* --------------------------------------------------------------
-            Product attributes
-        -------------------------------------------------------------- */}
-
-        {product.attributes &&
-          product.attributes.length > 0 && (
-            <section className="mt-8">
-
-              <SectionCard title="Product information">
-
-                <div className="grid gap-3 sm:grid-cols-2">
-
-                  {product.attributes.map(
-                    (attribute, index) => (
-                      <div
-                        key={`${attribute.key}-${index}`}
-                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                      >
-
-                        <p className="text-xs uppercase tracking-wider text-slate-500">
-                          {formatAttributeKey(
-                            attribute.key,
-                          )}
-                        </p>
-
-                        <p className="mt-2 break-words text-sm font-medium text-slate-200">
-                          {attribute.value}
-                        </p>
-
-                      </div>
-                    ),
-                  )}
-
-                </div>
-
-              </SectionCard>
-            </section>
-          )}
-
-        {/* --------------------------------------------------------------
-            Ingredients
-        -------------------------------------------------------------- */}
-
-        <section className="mt-8">
-
-          <SectionCard title="Ingredients">
-
-            {product.ingredients &&
-            product.ingredients.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-
-                {product.ingredients.map(
-                  (ingredient, index) => (
-                    <div
-                      key={`${ingredient.name}-${index}`}
-                      className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                    >
-
-                      <p className="text-sm font-semibold text-slate-200">
-                        {ingredient.name}
-                      </p>
-
-                      {ingredient.description && (
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                          {
-                            ingredient.description
-                          }
-                        </p>
-                      )}
-
-                    </div>
-                  ),
-                )}
-
-              </div>
-            ) : (
-              <EmptyText />
-            )}
-
-          </SectionCard>
-
-        </section>
-
-        {/* --------------------------------------------------------------
-            Nutrition
-        -------------------------------------------------------------- */}
-
-        <section className="mt-8">
-
-          <SectionCard title="Nutrition">
-
-            {nutrition ? (
-              <div>
-
-                {/* Nutrition basis */}
-
-                <div className="mb-5 rounded-2xl border border-slate-800 bg-slate-950 p-4">
-
-                  <p className="text-xs uppercase tracking-wider text-slate-500">
-                    Nutrition basis
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold text-slate-200">
-                    {nutrition.unit ??
-                      "Not specified"}
-                  </p>
-
-                </div>
-
-                {/* Nutrition values */}
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-
-                  <NutritionItem
-                    label="Calories"
-                    value={formatNumber(
-                      nutrition.calories,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Protein"
-                    value={formatNumber(
-                      nutrition.protein,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Carbohydrates"
-                    value={formatNumber(
-                      nutrition.carbohydrates,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Fat"
-                    value={formatNumber(
-                      nutrition.fat,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Saturated fat"
-                    value={formatNumber(
-                      nutrition.saturatedFat,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Sugars"
-                    value={formatNumber(
-                      nutrition.sugars,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Fiber"
-                    value={formatNumber(
-                      nutrition.fiber,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Salt"
-                    value={formatNumber(
-                      nutrition.salt,
-                    )}
-                  />
-
-                  <NutritionItem
-                    label="Sodium"
-                    value={formatNumber(
-                      nutrition.sodium,
-                    )}
-                  />
-
-                </div>
-
-                {nutrition.source && (
-                  <p className="mt-5 text-xs text-slate-500">
-                    Source:{" "}
-                    {nutrition.source}
-                  </p>
-                )}
-
-              </div>
-            ) : (
-              <EmptyText />
-            )}
-
-          </SectionCard>
-
-        </section>
-
-        {/* --------------------------------------------------------------
-            Prices
-        -------------------------------------------------------------- */}
-
-        {product.prices &&
-          product.prices.length > 0 && (
-            <section className="mt-8">
-
-              <SectionCard title="Prices">
-
-                <div className="space-y-3">
-
-                  {product.prices.map(
-                    (price, index) => (
-                      <div
-                        key={`${price.priceType}-${price.amount}-${index}`}
-                        className="flex flex-col justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:flex-row sm:items-center"
-                      >
-
-                        <div>
-
-                          <p className="text-sm font-semibold text-slate-200">
-                            {price.merchant ??
-                              "Merchant unavailable"}
-                          </p>
-
-                          <p className="mt-1 text-xs text-slate-500">
-                            {price.priceType}
-                          </p>
-
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    navigate(
+                                        `/products/${product.id}/verification`,
+                                    )
+                                }
+                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+                            >
+                                Verify Product
+                            </button>
                         </div>
 
-                        <p className="text-lg font-bold text-cyan-400">
-                          {formatPrice(
-                            price.amount,
-                            price.currency,
-                          )}
-                        </p>
-
-                      </div>
-                    ),
-                  )}
-
-                </div>
-
-              </SectionCard>
-
-            </section>
-          )}
-
-        {/* --------------------------------------------------------------
-            Product sources
-        -------------------------------------------------------------- */}
-
-        <section className="mt-8 pb-12">
-
-          <SectionCard title="Sources">
-
-            {product.sources &&
-            product.sources.length > 0 ? (
-              <div className="space-y-3">
-
-                {product.sources.map(
-                  (source, index) => (
-                    <div
-                      key={`${source.provider}-${index}`}
-                      className="flex flex-col justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:flex-row sm:items-center"
-                    >
-
-                      <div className="flex flex-wrap items-center gap-2">
-
-                        <p className="text-sm font-semibold text-slate-200">
-                          {source.provider}
-                        </p>
-
-                        {source.isPrimary && (
-                          <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-400">
-                            Primary source
-                          </span>
+                        {favoriteError && (
+                            <p className="mt-3 text-sm text-red-600">
+                                {
+                                    favoriteError
+                                }
+                            </p>
                         )}
-
-                      </div>
-
-                      {source.sourceUrl ? (
-                        <a
-                          href={
-                            source.sourceUrl
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-semibold text-cyan-400 hover:text-cyan-300"
-                        >
-                          View source →
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-600">
-                          Source URL unavailable
-                        </span>
-                      )}
-
                     </div>
-                  ),
-                )}
+                </div>
+            </section>
 
-              </div>
-            ) : (
-              <EmptyText />
+            {/* Basic information */}
+            <section className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                    Product Information
+                </h2>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <InfoRow
+                        label="Barcode"
+                        value={
+                            product.barcode
+                        }
+                    />
+
+                    <InfoRow
+                        label="Brand"
+                        value={
+                            product.brand
+                        }
+                    />
+
+                    <InfoRow
+                        label="Category"
+                        value={
+                            product.category
+                        }
+                    />
+
+                    <InfoRow
+                        label="Manufacturer"
+                        value={
+                            product.manufacturer
+                        }
+                    />
+
+                    <InfoRow
+                        label="Country"
+                        value={
+                            product.country
+                        }
+                    />
+
+                    <InfoRow
+                        label="Model Number"
+                        value={
+                            product.modelNumber
+                        }
+                    />
+                </div>
+            </section>
+
+            {/* Nutrition */}
+            {nutrition && (
+                <section className="mt-8">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        Nutrition
+                    </h2>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <NutritionItem
+                            label="Calories"
+                            value={
+                                nutrition.calories
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Protein"
+                            value={
+                                nutrition.proteinG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Carbohydrates"
+                            value={
+                                nutrition.carbohydratesG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Fat"
+                            value={
+                                nutrition.fatG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Saturated Fat"
+                            value={
+                                nutrition.saturatedFatG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Sugars"
+                            value={
+                                nutrition.sugarsG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Fiber"
+                            value={
+                                nutrition.fiberG
+                            }
+                        />
+
+                        <NutritionItem
+                            label="Sodium"
+                            value={
+                                nutrition.sodiumMg
+                            }
+                        />
+                    </div>
+                </section>
             )}
 
-          </SectionCard>
+            {/* Ingredients */}
+            <section className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                    Ingredients
+                </h2>
 
-        </section>
+                {ingredients.length ===
+                0 ? (
+                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <p className="text-sm text-gray-500">
+                            Ingredient information is
+                            not available.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 space-y-3">
+                        {ingredients.map(
+                            (
+                                ingredient,
+                                index,
+                            ) => (
+                                <div
+                                    key={`${ingredient.name}-${index}`}
+                                    className="rounded-xl border border-gray-200 bg-white p-5"
+                                >
+                                    <p className="font-medium text-gray-900">
+                                        {
+                                            ingredient.name
+                                        }
+                                    </p>
 
-      </div>
-    </main>
-  );
+                                    {ingredient.description && (
+                                        <p className="mt-2 text-sm leading-6 text-gray-600">
+                                            {
+                                                ingredient.description
+                                            }
+                                        </p>
+                                    )}
+                                </div>
+                            ),
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {/* Attributes */}
+            <section className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                    Specifications
+                </h2>
+
+                {attributes.length ===
+                0 ? (
+                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <p className="text-sm text-gray-500">
+                            No additional specifications
+                            are available.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        {attributes.map(
+                            (attribute) => (
+                                <InfoRow
+                                    key={
+                                        attribute.key
+                                    }
+                                    label={
+                                        attribute.key
+                                    }
+                                    value={
+                                        attribute.value
+                                    }
+                                />
+                            ),
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {/* Prices */}
+            <section className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                    Prices
+                </h2>
+
+                {prices.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <p className="text-sm text-gray-500">
+                            Price information is not
+                            available.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 space-y-3">
+                        {prices.map(
+                            (
+                                price,
+                                index,
+                            ) => (
+                                <div
+                                    key={`${price.amount}-${price.currency}-${index}`}
+                                    className="rounded-xl border border-gray-200 bg-white p-5"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium text-gray-900">
+                                                {
+                                                    price.priceType
+                                                }
+                                            </p>
+
+                                            {price.merchant && (
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    {
+                                                        price.merchant
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <p className="text-lg font-semibold text-gray-900">
+                                            {
+                                                price.currency
+                                            }{" "}
+                                            {
+                                                price.amount
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            ),
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {/* Sources */}
+            <section className="mt-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                    Data Sources
+                </h2>
+
+                {sources.length ===
+                0 ? (
+                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                        <p className="text-sm text-gray-500">
+                            No external sources are
+                            available.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 space-y-3">
+                        {sources.map(
+                            (
+                                source,
+                                index,
+                            ) => (
+                                <div
+                                    key={`${source.provider}-${index}`}
+                                    className="rounded-xl border border-gray-200 bg-white p-5"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium text-gray-900">
+                                                {
+                                                    source.provider
+                                                }
+                                            </p>
+
+                                            {source.isPrimary && (
+                                                <p className="mt-1 text-xs text-gray-500">
+                                                    Primary
+                                                    source
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {source.sourceUrl && (
+                                            <a
+                                                href={
+                                                    source.sourceUrl
+                                                }
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-sm font-medium text-gray-900 underline"
+                                            >
+                                                View source
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            ),
+                        )}
+                    </div>
+                )}
+            </section>
+        </main>
+    );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Reusable components
-|--------------------------------------------------------------------------
-*/
+type InfoRowProps = {
+    label: string;
+    value?: unknown;
+};
 
-function InfoCard({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+function InfoRow({
+    label,
+    value,
+}: InfoRowProps) {
+    const displayValue =
+        value === null ||
+        value === undefined ||
+        value === ""
+            ? "N/A"
+            : String(value);
 
-      <p className="text-xs uppercase tracking-wider text-slate-500">
-        {label}
-      </p>
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {label}
+            </p>
 
-      <p
-        className={`mt-2 break-words text-sm font-semibold text-slate-200 ${
-          mono
-            ? "font-mono tracking-wide"
-            : ""
-        }`}
-      >
-        {value}
-      </p>
-
-    </div>
-  );
+            <p className="mt-2 break-words text-sm font-medium text-gray-900">
+                {displayValue}
+            </p>
+        </div>
+    );
 }
 
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-7">
-
-      <h2 className="mb-5 text-xl font-bold text-white">
-        {title}
-      </h2>
-
-      {children}
-
-    </div>
-  );
-}
+type NutritionItemProps = {
+    label: string;
+    value?: unknown;
+};
 
 function NutritionItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+    label,
+    value,
+}: NutritionItemProps) {
+    const displayValue =
+        value === null ||
+        value === undefined ||
+        value === ""
+            ? "N/A"
+            : String(value);
 
-      <p className="text-xs text-slate-500">
-        {label}
-      </p>
+    return (
+        <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {label}
+            </p>
 
-      <p className="mt-2 text-sm font-bold text-slate-200">
-        {value}
-      </p>
-
-    </div>
-  );
-}
-
-function EmptyText() {
-  return (
-    <p className="text-sm text-slate-500">
-      Information not available for this product.
-    </p>
-  );
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+                {displayValue}
+            </p>
+        </div>
+    );
 }
 
 export default ProductDetailsPage;
