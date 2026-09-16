@@ -12,6 +12,8 @@ import type {
     VerificationCheck,
     VerificationResult,
 } from "../api/verification.api";
+import { getSafeUrl } from "../utils/url";
+
 
 function VerificationPage() {
     const { productId } = useParams<{
@@ -235,18 +237,21 @@ function VerificationPage() {
                                             </p>
                                         </div>
 
-                                        {source.sourceUrl && (
-                                            <a
-                                                href={
-                                                    source.sourceUrl
-                                                }
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-sm font-medium text-gray-900 underline"
-                                            >
-                                                View source
-                                            </a>
-                                        )}
+                                        {(() => {
+                                            const safeUrl = getSafeUrl(
+                                                source.sourceUrl,
+                                            );
+                                            return safeUrl ? (
+                                                <a
+                                                    href={safeUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer noopener"
+                                                    className="text-sm font-medium text-gray-900 underline"
+                                                >
+                                                    View source
+                                                </a>
+                                            ) : null;
+                                        })()}
                                     </div>
                                 </div>
                             ),

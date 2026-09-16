@@ -1,6 +1,7 @@
 import {
     Request,
     Response,
+    NextFunction,
 } from "express";
 
 import { AppError } from "../utils/app-error.js";
@@ -8,7 +9,8 @@ import { AppError } from "../utils/app-error.js";
 export const errorMiddleware = (
     error: unknown,
     _req: Request,
-    res: Response
+    res: Response,
+    _next: NextFunction
 ) => {
     if (
         error instanceof SyntaxError &&

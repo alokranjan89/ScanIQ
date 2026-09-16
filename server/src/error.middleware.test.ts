@@ -29,7 +29,8 @@ test("returns INVALID_JSON for malformed JSON", () => {
   errorMiddleware(
     error,
     {} as any,
-    response as any
+    response as any,
+    (() => {}) as any
   );
 
   assert.equal(
@@ -46,4 +47,8 @@ test("returns INVALID_JSON for malformed JSON", () => {
       },
     }
   );
+});
+
+test("errorMiddleware has an arity of 4 for Express error handling", () => {
+  assert.equal(errorMiddleware.length, 4);
 });

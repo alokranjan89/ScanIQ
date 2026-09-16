@@ -13,6 +13,8 @@ const GEMINI_TIMEOUT_MS = 10_000;
 
 export const geminiProvider: AIProvider = {
     async generateText(prompt: string): Promise<string> {
+        let timeoutId: NodeJS.Timeout | undefined;
+
         try {
             const response = await Promise.race([
                 client.models.generateContent({
@@ -21,7 +23,7 @@ export const geminiProvider: AIProvider = {
                 }),
 
                 new Promise<never>((_, reject) => {
-                    setTimeout(() => {
+                    timeoutId = setTimeout(() => {
                         reject(
                             new AppError(
                                 503,
@@ -59,6 +61,10 @@ export const geminiProvider: AIProvider = {
                 "AI_PROVIDER_UNAVAILABLE",
                 "AI service is temporarily unavailable"
             );
+        } finally {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
         }
     },
 };

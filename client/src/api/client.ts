@@ -95,9 +95,23 @@ export const apiRequest = async <T>(
             {
                 ...options,
                 headers,
+                signal:
+                    options.signal ??
+                    AbortSignal.timeout(15000),
             },
         );
-    } catch {
+    } catch (error) {
+        if (
+            error instanceof DOMException &&
+            error.name === "TimeoutError"
+        ) {
+            throw new ApiError(
+                408,
+                "REQUEST_TIMEOUT",
+                "Request timed out. Please try again.",
+            );
+        }
+
         throw new ApiError(
             0,
             "NETWORK_ERROR",

@@ -88,3 +88,16 @@ export const getCurrentUser = async (
         next(error);
     }
 };
+
+export const logout = async (
+    _req: Request,
+    res: Response,
+    _next: NextFunction
+) => {
+    return res.status(200).json({
+        data: {
+            success: true,
+            message: "Logged out successfully",
+        },
+    });
+};

@@ -5,6 +5,8 @@ import {
 } from "../controllers/ai.controller.js";
 
 import { validate } from "../middleware/validate.middleware.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
+import { aiRateLimiter } from "../middleware/rate-limit.middleware.js";
 
 import {
   explainProductSchema,
@@ -14,6 +16,8 @@ const router = Router();
 
 router.post(
   "/explain",
+  requireAuth,
+  aiRateLimiter,
   validate(
     explainProductSchema,
     "INVALID_AI_REQUEST",

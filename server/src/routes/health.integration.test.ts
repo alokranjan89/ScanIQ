@@ -14,4 +14,12 @@ test("GET /api/v1/health returns healthy status", async () => {
         response.body.status,
         "ok",
     );
+    assert.equal(
+        response.body.services.database,
+        "ok",
+    );
+    assert.equal(
+        response.body.services.redis,
+        "ok",
+    );
 });

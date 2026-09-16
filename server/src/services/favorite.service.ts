@@ -1,3 +1,4 @@
+import { Prisma } from "../generated/prisma/client.js";
 import {
   createFavorite,
   findFavoritesByUserId,
@@ -31,6 +32,23 @@ export const addFavorite = async (
       productId,
     });
   } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new AppError(
+          409,
+          "FAVORITE_ALREADY_EXISTS",
+          "Product is already in favorites"
+        );
+      }
+      if (error.code === "P2003") {
+        throw new AppError(
+          404,
+          "PRODUCT_NOT_FOUND",
+          "Product not found"
+        );
+      }
+    }
+
     // Handle a concurrent request that creates
     // the same favorite at the same time.
     if (

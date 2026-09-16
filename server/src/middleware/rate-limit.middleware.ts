@@ -27,3 +27,31 @@ export const productLookupRateLimiter = rateLimit({
         },
     },
 });
+
+export const authRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+
+    message: {
+        error: {
+            code: "AUTH_RATE_LIMIT_EXCEEDED",
+            message: "Too many authentication attempts. Please try again later.",
+        },
+    },
+});
+
+export const aiRateLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+
+    message: {
+        error: {
+            code: "AI_RATE_LIMIT_EXCEEDED",
+            message: "Too many AI requests. Please try again later.",
+        },
+    },
+});

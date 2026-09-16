@@ -15,8 +15,9 @@ export const generateAccessToken = (
         },
         authConfig.jwtSecret,
         {
+            algorithm: "HS256",
             expiresIn:
-                authConfig.accessTokenExpiresIn,
+                authConfig.accessTokenExpiresIn as jwt.SignOptions["expiresIn"],
         }
     );
 };
@@ -27,7 +28,10 @@ export const verifyAccessToken = (
     const decoded =
         jwt.verify(
             token,
-            authConfig.jwtSecret
+            authConfig.jwtSecret,
+            {
+                algorithms: ["HS256"],
+            }
         );
 
     if (

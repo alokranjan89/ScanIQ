@@ -8,5 +8,5 @@ if (!aiApiKey) {
 
 export const aiConfig = {
   apiKey: aiApiKey,
-  model: process.env.AI_MODEL ?? "gpt-5-mini",
+  model: process.env.AI_MODEL ?? "gemini-2.0-flash",
 } as const;
