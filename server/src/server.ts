@@ -3,11 +3,15 @@ import { env } from "./config/env.js";
 import prisma from "./config/prisma.js";
 import redis from "./config/redis.js";
 
-const server = app.listen(env.port, () => {
-    console.log(
-        `ScanIQ server running on port ${env.port}`
-    );
-});
+const server = app.listen(
+    env.port,
+    "0.0.0.0",
+    () => {
+        console.log(
+            `ScanIQ server running on port ${env.port}`
+        );
+    }
+);
 
 let isShuttingDown = false;
 
@@ -16,6 +20,7 @@ const shutdown = async (signal: string) => {
         console.log(
             `Shutdown already in progress. Ignoring ${signal}.`
         );
+
         return;
     }
 
@@ -37,7 +42,10 @@ const shutdown = async (signal: string) => {
 
         try {
             await prisma.$disconnect();
-            console.log("Database disconnected");
+
+            console.log(
+                "Database disconnected"
+            );
         } catch (error) {
             console.error(
                 "Failed to disconnect database:",
@@ -47,7 +55,10 @@ const shutdown = async (signal: string) => {
 
         try {
             await redis.quit();
-            console.log("Redis disconnected");
+
+            console.log(
+                "Redis disconnected"
+            );
         } catch (error) {
             console.error(
                 "Failed to disconnect Redis:",
@@ -55,7 +66,9 @@ const shutdown = async (signal: string) => {
             );
         }
 
-        console.log("ScanIQ server shutdown complete.");
+        console.log(
+            "ScanIQ server shutdown complete."
+        );
 
         process.exit(0);
     });
