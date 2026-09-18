@@ -16,6 +16,7 @@ import SearchPage from "./pages/SearchPage";
 import AIPage from "./pages/AIPage";
 import ComparisonPage from "./pages/ComparisonPage";
 import VerificationPage from "./pages/VerificationPage";
+import ProfilePage from "./pages/ProfilePage";
 
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -29,60 +30,8 @@ function App() {
                 <Routes>
 
                     {/* =========================
-                        PUBLIC ROUTES
-                    ========================= */}
-
-                    <Route element={<MainLayout />}>
-
-                        <Route
-                            path="/"
-                            element={<HomePage />}
-                        />
-
-                        <Route
-                            path="/scan"
-                            element={<ScannerPage />}
-                        />
-
-                        <Route
-                            path="/search"
-                            element={<SearchPage />}
-                        />
-
-                        <Route
-                            path="/products/:barcode"
-                            element={
-                                <ProductDetailsPage />
-                            }
-                        />
-
-                        <Route
-                            path="/products/:barcode/ai"
-                            element={
-                                <AIPage />
-                            }
-                        />
-
-                        <Route
-                            path="/products/:productId/verification"
-                            element={
-                                <VerificationPage />
-                            }
-                        />
-
-                        <Route
-                            path="/compare"
-                            element={
-                                <ComparisonPage />
-                            }
-                        />
-
-                    </Route>
-
-
-                    {/* =========================
-                        AUTH ROUTES
-                    ========================= */}
+                        PUBLIC AUTH ROUTES
+                       ========================= */}
 
                     <Route
                         path="/login"
@@ -91,50 +40,84 @@ function App() {
 
                     <Route
                         path="/register"
-                        element={
-                            <RegisterPage />
-                        }
+                        element={<RegisterPage />}
                     />
 
 
                     {/* =========================
-                        PROTECTED ROUTES
-                    ========================= */}
+                        PROTECTED APPLICATION
+                       ========================= */}
 
-                    <Route
-                        element={
-                            <ProtectedRoute />
-                        }
-                    >
+                    <Route element={<ProtectedRoute />}>
+                        <Route element={<MainLayout />}>
 
-                        <Route
-                            element={
-                                <MainLayout />
-                            }
-                        >
-
+                            {/* Home */}
                             <Route
-                                path="/history"
-                                element={
-                                    <HistoryPage />
-                                }
+                                path="/"
+                                element={<HomePage />}
                             />
 
+                            {/* Scanner */}
+                            <Route
+                                path="/scan"
+                                element={<ScannerPage />}
+                            />
+
+                            {/* Search */}
+                            <Route
+                                path="/search"
+                                element={<SearchPage />}
+                            />
+
+                            {/* Product */}
+                            <Route
+                                path="/products/:barcode"
+                                element={<ProductDetailsPage />}
+                            />
+
+                            {/* AI */}
+                            <Route
+                                path="/products/:barcode/ai"
+                                element={<AIPage />}
+                            />
+
+                            {/* Verification */}
+                            <Route
+                                path="/products/:productId/verification"
+                                element={<VerificationPage />}
+                            />
+
+                            {/* Comparison */}
+                            <Route
+                                path="/compare"
+                                element={<ComparisonPage />}
+                            />
+
+                            {/* History */}
+                            <Route
+                                path="/history"
+                                element={<HistoryPage />}
+                            />
+
+                            {/* Favorites */}
                             <Route
                                 path="/favorites"
-                                element={
-                                    <FavoritesPage />
-                                }
+                                element={<FavoritesPage />}
+                            />
+
+                            {/* Profile */}
+                            <Route
+                                path="/profile"
+                                element={<ProfilePage />}
                             />
 
                         </Route>
-
                     </Route>
 
 
                     {/* =========================
-                        FALLBACK
-                    ========================= */}
+                        UNKNOWN ROUTES
+                       ========================= */}
 
                     <Route
                         path="*"
