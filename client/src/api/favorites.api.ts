@@ -1,8 +1,6 @@
 import { apiRequest } from "./client";
 
-import type {
-    Favorite,
-} from "../types/api";
+import type { Favorite } from "../types/api";
 
 type FavoritesApiResponse = {
     data: {
@@ -10,29 +8,27 @@ type FavoritesApiResponse = {
     };
 };
 
-export const getFavorites = async (): Promise<Favorite[]> => {
-    const response =
-        await apiRequest<FavoritesApiResponse>(
-            "/favorites",
-        );
+type FavoriteApiResponse = {
+    data: {
+        favorite: Favorite;
+    };
+};
 
-    return response.data.favorites;
+export const getFavorites = async (): Promise<Favorite[]> => {
+    const response = await apiRequest<FavoritesApiResponse>("/favorites");
+
+    return response.data?.favorites ?? [];
 };
 
 export const addFavorite = async (
     productId: number,
 ): Promise<Favorite> => {
-    const response =
-        await apiRequest<{
-            data: {
-                favorite: Favorite;
-            };
-        }>(
-            `/favorites/${productId}`,
-            {
-                method: "POST",
-            },
-        );
+    const response = await apiRequest<FavoriteApiResponse>(
+        `/favorites/${productId}`,
+        {
+            method: "POST",
+        },
+    );
 
     return response.data.favorite;
 };
@@ -40,10 +36,7 @@ export const addFavorite = async (
 export const removeFavorite = async (
     productId: number,
 ): Promise<void> => {
-    await apiRequest(
-        `/favorites/${productId}`,
-        {
-            method: "DELETE",
-        },
-    );
+    await apiRequest<void>(`/favorites/${productId}`, {
+        method: "DELETE",
+    });
 };
