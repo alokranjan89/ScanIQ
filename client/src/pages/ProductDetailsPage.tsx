@@ -4,6 +4,12 @@ import {
     useNavigate,
     useParams,
 } from "react-router-dom";
+import {
+    Bot,
+    GitCompare,
+    Heart,
+    ShieldCheck,
+} from "lucide-react";
 
 import {
     getProductByBarcode,
@@ -208,7 +214,7 @@ function ProductDetailsPage() {
 
                     <Link
                         to="/"
-                        className="mt-5 inline-block rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+                        className="mt-5 inline-block rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
                     >
                         Back to home
                     </Link>
@@ -237,17 +243,18 @@ function ProductDetailsPage() {
         product.nutrition ?? null;
 
     return (
-        <main className="mx-auto max-w-6xl px-4 py-8">
+        <main className="page-shell">
+            <div className="page-container">
             {/* Back */}
             <Link
                 to="/"
-                className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                className="text-sm font-semibold text-slate-500 hover:text-slate-950"
             >
                 ← Back
             </Link>
 
             {/* Product header */}
-            <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="surface mt-6 rounded-[2rem] p-6">
                 <div className="grid gap-8 md:grid-cols-[280px_1fr]">
                     {/* Image */}
                     <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl bg-gray-100">
@@ -306,13 +313,14 @@ function ProductDetailsPage() {
                                     isFavoriteLoading ||
                                     isAuthLoading
                                 }
-                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
                             >
+                                <Heart size={17} />
                                 {isFavoriteLoading
                                     ? "Updating..."
                                     : isFavorite
-                                      ? "♥ Favorited"
-                                      : "♡ Favorite"}
+                                      ? "Favorited"
+                                      : "Favorite"}
                             </button>
 
                             <button
@@ -322,8 +330,9 @@ function ProductDetailsPage() {
                                         `/compare?productId1=${product.id}`,
                                     )
                                 }
-                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+                                className="btn-secondary"
                             >
+                                <GitCompare size={17} />
                                 Compare
                             </button>
 
@@ -334,8 +343,9 @@ function ProductDetailsPage() {
                                         `/products/${product.barcode}/ai`,
                                     )
                                 }
-                                className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+                                className="btn-primary"
                             >
+                                <Bot size={17} />
                                 Ask AI
                             </button>
 
@@ -346,8 +356,9 @@ function ProductDetailsPage() {
                                         `/products/${product.id}/verification`,
                                     )
                                 }
-                                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+                                className="btn-secondary"
                             >
+                                <ShieldCheck size={17} />
                                 Verify Product
                             </button>
                         </div>
@@ -432,49 +443,49 @@ function ProductDetailsPage() {
                         <NutritionItem
                             label="Protein"
                             value={
-                                nutrition.proteinG
+                                nutrition.protein
                             }
                         />
 
                         <NutritionItem
                             label="Carbohydrates"
                             value={
-                                nutrition.carbohydratesG
+                                nutrition.carbohydrates
                             }
                         />
 
                         <NutritionItem
                             label="Fat"
                             value={
-                                nutrition.fatG
+                                nutrition.fat
                             }
                         />
 
                         <NutritionItem
                             label="Saturated Fat"
                             value={
-                                nutrition.saturatedFatG
+                                nutrition.saturatedFat
                             }
                         />
 
                         <NutritionItem
                             label="Sugars"
                             value={
-                                nutrition.sugarsG
+                                nutrition.sugars
                             }
                         />
 
                         <NutritionItem
                             label="Fiber"
                             value={
-                                nutrition.fiberG
+                                nutrition.fiber
                             }
                         />
 
                         <NutritionItem
                             label="Sodium"
                             value={
-                                nutrition.sodiumMg
+                                nutrition.sodium
                             }
                         />
                     </div>
@@ -681,6 +692,7 @@ function ProductDetailsPage() {
                     </div>
                 )}
             </section>
+            </div>
         </main>
     );
 }

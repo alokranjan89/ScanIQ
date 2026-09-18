@@ -5,11 +5,15 @@ import type {
 } from "../types/api";
 
 type ScansApiResponse = {
-    data: ScanHistoryItem[];
+    data: {
+        scans: ScanHistoryItem[];
+    };
 };
 
 type CreateScanResponse = {
-    data: ScanHistoryItem;
+    data: {
+        scan: ScanHistoryItem;
+    };
 };
 
 export const getScanHistory = async (): Promise<ScanHistoryItem[]> => {
@@ -18,7 +22,7 @@ export const getScanHistory = async (): Promise<ScanHistoryItem[]> => {
             "/scans",
         );
 
-    return response.data;
+    return response.data.scans;
 };
 
 export const createScanHistory = async (
@@ -37,7 +41,7 @@ export const createScanHistory = async (
             },
         );
 
-    return response.data;
+    return response.data.scan;
 };
 
 export const deleteScanHistory = async (

@@ -129,15 +129,13 @@ function AIPage() {
 
     if (isLoading) {
         return (
-            <main className="min-h-screen bg-slate-950 text-white">
-                <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6">
-                    <div className="text-center">
-                        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-white" />
+            <main className="page-shell flex min-h-[calc(100vh-4rem)] items-center justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-teal-200 border-t-teal-700" />
 
-                        <p className="text-slate-300">
-                            Loading product...
-                        </p>
-                    </div>
+                    <p className="font-medium text-slate-600">
+                        Loading product...
+                    </p>
                 </div>
             </main>
         );
@@ -145,31 +143,29 @@ function AIPage() {
 
     if (error && !product) {
         return (
-            <main className="min-h-screen bg-slate-950 text-white">
-                <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6">
-                    <div className="w-full max-w-md rounded-2xl border border-red-900/50 bg-slate-900 p-8 text-center">
-                        <div className="mb-4 text-4xl">
-                            ⚠️
-                        </div>
-
-                        <h1 className="mb-2 text-xl font-semibold">
-                            Unable to load product
-                        </h1>
-
-                        <p className="mb-6 text-sm text-slate-400">
-                            {error}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                navigate(-1)
-                            }
-                            className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
-                        >
-                            Go Back
-                        </button>
+            <main className="page-shell flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+                <div className="surface w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-lg">
+                    <div className="mb-4 text-4xl">
+                        ⚠️
                     </div>
+
+                    <h1 className="mb-2 text-xl font-bold text-slate-950">
+                        Unable to load product
+                    </h1>
+
+                    <p className="mb-6 text-sm text-slate-600">
+                        {error}
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            navigate(-1)
+                        }
+                        className="btn-secondary"
+                    >
+                        Go Back
+                    </button>
                 </div>
             </main>
         );
@@ -180,37 +176,37 @@ function AIPage() {
     }
 
     return (
-        <main className="min-h-screen bg-slate-950 text-white">
-            <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+        <main className="page-shell">
+            <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
 
                 {/* Header */}
-                <header className="mb-8 flex items-center justify-between">
+                <header className="mb-6 flex items-center justify-between">
                     <button
                         type="button"
                         onClick={() =>
                             navigate(-1)
                         }
-                        className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                        className="btn-secondary py-2 text-sm"
                     >
                         ← Back
                     </button>
 
                     <div className="text-right">
-                        <p className="text-xs uppercase tracking-widest text-slate-500">
+                        <p className="eyebrow">
                             ScanIQ
                         </p>
 
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm font-medium text-slate-500">
                             AI Product Assistant
                         </p>
                     </div>
                 </header>
 
                 {/* Product summary */}
-                <section className="mb-6 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+                <section className="surface mb-6 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
 
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white">
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                             {product.imageUrl ? (
                                 <img
                                     src={
@@ -229,17 +225,17 @@ function AIPage() {
                         </div>
 
                         <div className="min-w-0">
-                            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-emerald-400">
+                            <span className="mb-1 inline-block rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-teal-700">
                                 {product.category ??
                                     "Product"}
-                            </p>
+                            </span>
 
-                            <h1 className="text-2xl font-bold">
+                            <h1 className="mt-1 text-2xl font-extrabold text-slate-950">
                                 {product.name}
                             </h1>
 
                             {product.brand && (
-                                <p className="mt-1 text-slate-400">
+                                <p className="mt-1 text-sm font-medium text-slate-600">
                                     {product.brand}
                                 </p>
                             )}
@@ -248,19 +244,19 @@ function AIPage() {
                 </section>
 
                 {/* AI section */}
-                <section className="mb-6 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+                <section className="surface mb-6 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
                     <div className="mb-6">
                         <div className="mb-3 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-xl">
+                            <div className="icon-tile">
                                 ✨
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-semibold">
+                                <h2 className="text-xl font-bold text-slate-950">
                                     Ask AI
                                 </h2>
 
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-slate-600">
                                     Ask a question about
                                     this product using
                                     the available product
@@ -273,7 +269,7 @@ function AIPage() {
                     {/* Question */}
                     <label
                         htmlFor="ai-question"
-                        className="mb-2 block text-sm font-medium text-slate-300"
+                        className="mb-2 block text-sm font-semibold text-slate-700"
                     >
                         What would you like to know?
                     </label>
@@ -290,7 +286,7 @@ function AIPage() {
                         rows={4}
                         maxLength={500}
                         disabled={isAsking}
-                        className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
                     />
 
                     <div className="mt-2 flex items-center justify-between">
@@ -299,7 +295,7 @@ function AIPage() {
                             available product data.
                         </p>
 
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs font-medium text-slate-400">
                             {question.length}/500
                         </p>
                     </div>
@@ -313,7 +309,7 @@ function AIPage() {
                             isAsking ||
                             !question.trim()
                         }
-                        className="mt-4 w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn-primary mt-4 w-full"
                     >
                         {isAsking
                             ? "Thinking..."
@@ -323,8 +319,8 @@ function AIPage() {
 
                 {/* Error */}
                 {error && product && (
-                    <div className="mb-6 rounded-xl border border-red-900/50 bg-red-950/30 p-4">
-                        <p className="text-sm text-red-300">
+                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                        <p className="text-sm text-red-700">
                             {error}
                         </p>
                     </div>
@@ -332,36 +328,36 @@ function AIPage() {
 
                 {/* Answer */}
                 {answer && (
-                    <section className="rounded-3xl border border-blue-900/50 bg-slate-900 p-6">
+                    <section className="surface rounded-3xl border border-teal-200/80 bg-white p-6 shadow-sm">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-xl">
+                            <div className="icon-tile">
                                 🤖
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-semibold">
+                                <h2 className="text-xl font-bold text-slate-950">
                                     AI Answer
                                 </h2>
 
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-slate-600">
                                     Based on available
                                     product information
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mb-4 rounded-2xl bg-slate-800/60 p-5">
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <div className="mb-4 rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                                 Your question
                             </p>
 
-                            <p className="mt-2 text-sm text-slate-300">
+                            <p className="mt-2 text-sm font-medium text-slate-800">
                                 {question}
                             </p>
                         </div>
 
-                        <div className="rounded-2xl bg-slate-800/60 p-5">
-                            <p className="whitespace-pre-wrap leading-7 text-slate-200">
+                        <div className="rounded-2xl border border-teal-100/70 bg-teal-50/40 p-5">
+                            <p className="whitespace-pre-wrap leading-7 text-slate-800">
                                 {answer}
                             </p>
                         </div>

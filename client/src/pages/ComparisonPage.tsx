@@ -217,7 +217,7 @@ function ComparisonPage() {
                                 isSearching ||
                                 !query.trim()
                             }
-                            className="rounded-xl bg-gray-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-xl bg-teal-700 px-6 py-3 text-sm font-medium text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isSearching
                                 ? "Searching..."
@@ -330,7 +330,7 @@ function ComparisonPage() {
 
                     <Link
                         to={`/compare?productId1=${productId1}`}
-                        className="mt-5 inline-block rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+                        className="mt-5 inline-block rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
                     >
                         Choose another product
                     </Link>

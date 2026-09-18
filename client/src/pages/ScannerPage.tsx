@@ -1,32 +1,27 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+    Camera,
+    Keyboard,
+    MoveLeft,
+    ScanLine,
+} from "lucide-react";
 
 import BarcodeScanner from "../components/BarcodeScanner";
-
 import { getProductByBarcode } from "../services/product.service";
-
-import {
-    createScanHistory,
-} from "../api/scans.api";
-
+import { createScanHistory } from "../api/scans.api";
 import { useAuth } from "../context/AuthContext";
 
 function ScannerPage() {
     const navigate = useNavigate();
-
-    const {
-        isAuthenticated,
-    } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     const [isScanning, setIsScanning] =
         useState(false);
-
     const [barcode, setBarcode] =
         useState("");
-
     const [isLoading, setIsLoading] =
         useState(false);
-
     const [error, setError] =
         useState("");
 
@@ -48,22 +43,11 @@ function ScannerPage() {
             setIsLoading(true);
 
             try {
-                /*
-                 * Step 1:
-                 * Find the product using the scanned barcode.
-                 */
                 const product =
                     await getProductByBarcode(
                         normalizedBarcode,
                     );
 
-                /*
-                 * Step 2:
-                 * Save the scan for authenticated users.
-                 *
-                 * We don't send userId from the frontend.
-                 * The backend gets the user from the JWT.
-                 */
                 if (isAuthenticated) {
                     try {
                         await createScanHistory(
@@ -71,30 +55,19 @@ function ScannerPage() {
                             normalizedBarcode,
                         );
                     } catch {
-                        /*
-                         * A history failure should NOT prevent
-                         * the user from seeing the product.
-                         *
-                         * Product identification is the primary
-                         * scanner operation.
-                         */
+                        // History should never block product identification.
                     }
                 }
 
-                /*
-                 * Step 3:
-                 * ProductDetailsPage expects a barcode.
-                 */
                 navigate(
                     `/products/${product.barcode}`,
                 );
             } catch (err) {
-                const message =
+                setError(
                     err instanceof Error
                         ? err.message
-                        : "Unable to find this product.";
-
-                setError(message);
+                        : "Unable to find this product.",
+                );
             } finally {
                 setIsLoading(false);
             }
@@ -106,15 +79,6 @@ function ScannerPage() {
         ],
     );
 
-    const handleScannerError =
-        useCallback(
-            (message: string) => {
-                setError(message);
-                setIsScanning(false);
-            },
-            [],
-        );
-
     const handleManualSearch =
         async () => {
             const normalizedBarcode =
@@ -124,7 +88,6 @@ function ScannerPage() {
                 setError(
                     "Please enter a barcode.",
                 );
-
                 return;
             }
 
@@ -133,127 +96,137 @@ function ScannerPage() {
             );
         };
 
-    const handleStartScanner = () => {
-        setError("");
-        setIsScanning(true);
-    };
-
-    const handleCancelScanner = () => {
-        setIsScanning(false);
-        setError("");
-    };
-
     return (
-        <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-            <div className="mx-auto max-w-2xl">
-
-                {/* Header */}
+        <main className="page-shell">
+            <div className="mx-auto max-w-3xl">
                 <header className="mb-8">
                     <Link
                         to="/"
-                        className="inline-flex items-center text-sm text-slate-400 transition hover:text-white"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
                     >
-                        ← Back to home
+                        <MoveLeft size={17} />
+                        Back to home
                     </Link>
 
                     <div className="mt-6">
-                        <p className="mb-2 text-sm font-medium uppercase tracking-wider text-slate-400">
+                        <p className="eyebrow mb-2">
                             ScanIQ
                         </p>
 
-                        <h1 className="text-3xl font-bold tracking-tight">
+                        <h1 className="heading-lg">
                             Scan a product
                         </h1>
 
-                        <p className="mt-2 text-slate-400">
-                            Scan a QR code or barcode to identify the product.
+                        <p className="mt-3 max-w-2xl text-slate-600">
+                            Use your camera or type a
+                            barcode to identify a
+                            product and open its
+                            intelligence profile.
                         </p>
                     </div>
                 </header>
 
-                {/* Camera scanner */}
                 {isScanning ? (
                     <section className="space-y-4">
-                        <div className="overflow-hidden rounded-2xl border border-slate-800">
+                        <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-950 shadow-2xl shadow-slate-900/15">
                             <BarcodeScanner
                                 onScan={handleScan}
-                                onError={handleScannerError}
+                                onError={(message) => {
+                                    setError(message);
+                                    setIsScanning(false);
+                                }}
                             />
                         </div>
 
                         <button
                             type="button"
-                            onClick={
-                                handleCancelScanner
-                            }
+                            onClick={() => {
+                                setIsScanning(false);
+                                setError("");
+                            }}
                             disabled={isLoading}
-                            className="w-full rounded-xl border border-slate-700 px-5 py-3 font-medium text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="btn-secondary w-full"
                         >
                             Cancel scanning
                         </button>
                     </section>
                 ) : (
                     <section className="space-y-6">
+                        <div className="surface rounded-[1.75rem] p-6">
+                            <div className="flex items-start gap-4">
+                                <span className="icon-tile">
+                                    <Camera size={22} />
+                                </span>
 
-                        {/* Camera card */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-                            <h2 className="text-xl font-semibold">
-                                Camera scanner
-                            </h2>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-950">
+                                        Camera scanner
+                                    </h2>
 
-                            <p className="mt-2 text-sm leading-6 text-slate-400">
-                                Use your device camera to scan a supported QR code
-                                or barcode.
-                            </p>
+                                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                                        Point your camera at
+                                        a product QR code or
+                                        barcode.
+                                    </p>
+                                </div>
+                            </div>
 
                             <button
                                 type="button"
-                                onClick={
-                                    handleStartScanner
-                                }
+                                onClick={() => {
+                                    setError("");
+                                    setIsScanning(true);
+                                }}
                                 disabled={isLoading}
-                                className="mt-6 w-full rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="btn-primary mt-6 w-full"
                             >
+                                <ScanLine size={18} />
                                 {isLoading
                                     ? "Finding product..."
                                     : "Open camera"}
                             </button>
                         </div>
 
-                        {/* Divider */}
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-800" />
+                                <div className="w-full border-t border-slate-200" />
                             </div>
 
                             <div className="relative flex justify-center">
-                                <span className="bg-slate-950 px-4 text-sm text-slate-500">
+                                <span className="bg-[#f5f7fb] px-4 text-sm font-semibold text-slate-400">
                                     OR
                                 </span>
                             </div>
                         </div>
 
-                        {/* Manual barcode */}
                         <form
                             onSubmit={(event) => {
                                 event.preventDefault();
-
                                 void handleManualSearch();
                             }}
-                            className="rounded-2xl border border-slate-800 bg-slate-900 p-6"
+                            className="surface rounded-[1.75rem] p-6"
                         >
-                            <h2 className="text-xl font-semibold">
-                                Enter barcode manually
-                            </h2>
+                            <div className="flex items-start gap-4">
+                                <span className="icon-tile bg-orange-100 text-orange-700">
+                                    <Keyboard size={22} />
+                                </span>
 
-                            <p className="mt-2 text-sm text-slate-400">
-                                Enter an EAN, UPC, or other supported product
-                                barcode.
-                            </p>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-950">
+                                        Manual entry
+                                    </h2>
+
+                                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                                        Enter an EAN, UPC, or
+                                        other supported
+                                        product barcode.
+                                    </p>
+                                </div>
+                            </div>
 
                             <label
                                 htmlFor="barcode"
-                                className="mt-5 block text-sm font-medium text-slate-300"
+                                className="mt-5 block text-sm font-semibold text-slate-700"
                             >
                                 Barcode
                             </label>
@@ -268,18 +241,17 @@ function ScannerPage() {
                                     setBarcode(
                                         event.target.value,
                                     );
-
                                     setError("");
                                 }}
                                 placeholder="e.g. 012993441012"
                                 disabled={isLoading}
-                                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="input-control mt-2 disabled:cursor-not-allowed disabled:opacity-50"
                             />
 
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="mt-4 w-full rounded-xl border border-slate-600 px-5 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="btn-secondary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {isLoading
                                     ? "Finding product..."
@@ -289,22 +261,22 @@ function ScannerPage() {
                     </section>
                 )}
 
-                {/* Error */}
                 {error && (
                     <div
                         role="alert"
-                        className="mt-6 rounded-xl border border-red-900/60 bg-red-950/40 p-4 text-sm text-red-300"
+                        className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
                     >
                         {error}
                     </div>
                 )}
 
-                {/* Supported formats */}
-                <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                <div className="soft-panel mt-8 rounded-2xl p-4">
                     <p className="text-xs leading-5 text-slate-500">
-                        Supported formats include QR Code, EAN-8,
-                        EAN-13, UPC-A, and UPC-E. Camera access
-                        requires permission from your browser.
+                        Supported formats include QR
+                        Code, EAN-8, EAN-13, UPC-A,
+                        and UPC-E. Camera access
+                        requires permission from your
+                        browser.
                     </p>
                 </div>
             </div>

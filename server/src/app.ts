@@ -38,7 +38,6 @@ app.use("/api/v1", healthRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/products/search", searchRoutes);
 app.use("/api/v1/products", comparisonRoutes);
-app.use("/api/v1", comparisonRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/scans", scanRoutes);
 app.use("/api/v1/favorites", favoriteRoutes);

@@ -5,7 +5,9 @@ import type {
 } from "../types/api";
 
 type FavoritesApiResponse = {
-    data: Favorite[];
+    data: {
+        favorites: Favorite[];
+    };
 };
 
 export const getFavorites = async (): Promise<Favorite[]> => {
@@ -14,21 +16,25 @@ export const getFavorites = async (): Promise<Favorite[]> => {
             "/favorites",
         );
 
-    return response.data;
+    return response.data.favorites;
 };
 
 export const addFavorite = async (
     productId: number,
 ): Promise<Favorite> => {
     const response =
-        await apiRequest<{ data: Favorite }>(
+        await apiRequest<{
+            data: {
+                favorite: Favorite;
+            };
+        }>(
             `/favorites/${productId}`,
             {
                 method: "POST",
             },
         );
 
-    return response.data;
+    return response.data.favorite;
 };
 
 export const removeFavorite = async (

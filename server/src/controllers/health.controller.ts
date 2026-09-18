@@ -8,30 +8,31 @@ export const healthCheck = async (
 ) => {
     let databaseStatus = "ok";
     let redisStatus = "ok";
-    let isHealthy = true;
 
     try {
         await prisma.$queryRaw`SELECT 1`;
     } catch {
         databaseStatus = "error";
-        isHealthy = false;
     }
 
     try {
         const pingResult = await redis.ping();
         if (pingResult !== "PONG") {
             redisStatus = "error";
-            isHealthy = false;
         }
     } catch {
         redisStatus = "error";
-        isHealthy = false;
     }
 
-    const statusCode = isHealthy ? 200 : 503;
+    const isDbHealthy = databaseStatus === "ok";
+    const statusCode = isDbHealthy ? 200 : 503;
 
     res.status(statusCode).json({
-        status: isHealthy ? "ok" : "degraded",
+        status: isDbHealthy
+            ? redisStatus === "ok"
+                ? "ok"
+                : "degraded"
+            : "error",
         services: {
             database: databaseStatus,
             redis: redisStatus,

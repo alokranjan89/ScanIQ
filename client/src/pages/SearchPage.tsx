@@ -2,7 +2,6 @@ import {
     useEffect,
     useState,
 } from "react";
-
 import type {
     FormEvent,
 } from "react";
@@ -10,19 +9,14 @@ import {
     Link,
     useSearchParams,
 } from "react-router-dom";
-
 import {
-    Search,
+    ArrowRight,
     Package,
+    Search,
 } from "lucide-react";
 
-import {
-    searchProducts,
-} from "../api/search.api";
-
-import type {
-    ProductSearchItem,
-} from "../types/api";
+import { searchProducts } from "../api/search.api";
+import type { ProductSearchItem } from "../types/api";
 
 function SearchPage() {
     const [searchParams, setSearchParams] =
@@ -33,16 +27,12 @@ function SearchPage() {
 
     const [query, setQuery] =
         useState(initialQuery);
-
     const [results, setResults] =
         useState<ProductSearchItem[]>([]);
-
     const [isLoading, setIsLoading] =
         useState(false);
-
     const [error, setError] =
         useState<string | null>(null);
-
     const [hasSearched, setHasSearched] =
         useState(Boolean(initialQuery));
 
@@ -74,12 +64,11 @@ function SearchPage() {
                     return;
                 }
 
-                const message =
+                setError(
                     err instanceof Error
                         ? err.message
-                        : "Unable to search products.";
-
-                setError(message);
+                        : "Unable to search products.",
+                );
                 setResults([]);
                 setHasSearched(true);
             } finally {
@@ -118,35 +107,32 @@ function SearchPage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-950 text-white">
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-
-                {/* Header */}
-                <div className="mb-8">
-                    <p className="mb-2 text-sm font-medium uppercase tracking-widest text-emerald-400">
-                        ScanIQ
+        <main className="page-shell">
+            <div className="page-container">
+                <header className="mb-8 max-w-3xl">
+                    <p className="eyebrow mb-2">
+                        Product catalog
                     </p>
 
-                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                        Search Products
+                    <h1 className="heading-lg">
+                        Search products
                     </h1>
 
-                    <p className="mt-2 text-slate-400">
-                        Search by product name, brand,
+                    <p className="mt-3 text-slate-600">
+                        Search by name, brand,
                         barcode, or model number.
                     </p>
-                </div>
+                </header>
 
-                {/* Search form */}
                 <form
                     onSubmit={handleSubmit}
-                    className="mb-8"
+                    className="surface mb-8 rounded-[1.75rem] p-4 sm:p-5"
                 >
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <div className="relative flex-1">
                             <Search
                                 size={20}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                             />
 
                             <input
@@ -158,181 +144,166 @@ function SearchPage() {
                                     )
                                 }
                                 placeholder="Search products..."
-                                className="w-full rounded-xl border border-slate-700 bg-slate-900 py-3.5 pl-12 pr-4 text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-500"
+                                className="input-control py-4 pl-12"
                             />
                         </div>
 
                         <button
                             type="submit"
                             disabled={!query.trim()}
-                            className="rounded-xl bg-white px-6 py-3.5 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="btn-primary sm:min-w-36"
                         >
                             Search
                         </button>
                     </div>
                 </form>
 
-                {/* Loading */}
                 {isLoading && (
                     <div className="flex min-h-[250px] items-center justify-center">
                         <div className="text-center">
-                            <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-700 border-t-white" />
-
-                            <p className="text-sm text-slate-400">
+                            <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-teal-700" />
+                            <p className="text-sm text-slate-500">
                                 Searching products...
                             </p>
                         </div>
                     </div>
                 )}
 
-                {/* Error */}
                 {!isLoading && error && (
-                    <div className="rounded-2xl border border-red-900/50 bg-red-950/30 p-6">
-                        <h2 className="font-semibold text-red-300">
+                    <div className="rounded-3xl border border-red-200 bg-red-50 p-6">
+                        <h2 className="font-bold text-red-800">
                             Search failed
                         </h2>
-
-                        <p className="mt-2 text-sm text-red-400">
+                        <p className="mt-2 text-sm text-red-700">
                             {error}
                         </p>
                     </div>
                 )}
 
-                {/* Empty state */}
                 {!isLoading &&
                     !error &&
                     hasSearched &&
                     results.length === 0 && (
-                        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 px-6 py-16 text-center">
-                            <Package
-                                size={48}
-                                className="mx-auto mb-4 text-slate-500"
-                            />
-
-                            <h2 className="text-xl font-semibold">
-                                No products found
-                            </h2>
-
-                            <p className="mt-2 text-sm text-slate-400">
-                                Try a different product name,
-                                brand, barcode, or model number.
-                            </p>
-                        </div>
+                        <EmptyState
+                            title="No products found"
+                            text="Try another product name, brand, barcode, or model number."
+                        />
                     )}
 
-                {/* Results */}
                 {!isLoading &&
                     !error &&
                     results.length > 0 && (
                         <section>
-                            <div className="mb-4">
-                                <p className="text-sm text-slate-400">
-                                    {results.length}{" "}
-                                    {results.length === 1
-                                        ? "product"
-                                        : "products"}{" "}
-                                    found
-                                </p>
-                            </div>
+                            <p className="mb-4 text-sm font-semibold text-slate-500">
+                                {results.length}{" "}
+                                {results.length === 1
+                                    ? "product"
+                                    : "products"}{" "}
+                                found
+                            </p>
 
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 {results.map(
                                     (product) => (
-                                        <Link
+                                        <ProductResult
                                             key={
                                                 product.id
                                             }
-                                            to={`/products/${product.barcode}`}
-                                            className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 transition hover:-translate-y-1 hover:border-slate-600"
-                                        >
-                                            {/* Image */}
-                                            <div className="flex h-52 items-center justify-center bg-white p-5">
-                                                {product.imageUrl ? (
-                                                    <img
-                                                        src={
-                                                            product.imageUrl
-                                                        }
-                                                        alt={
-                                                            product.name
-                                                        }
-                                                        className="h-full w-full object-contain transition group-hover:scale-105"
-                                                    />
-                                                ) : (
-                                                    <Package
-                                                        size={
-                                                            52
-                                                        }
-                                                        className="text-slate-400"
-                                                    />
-                                                )}
-                                            </div>
-
-                                            {/* Details */}
-                                            <div className="p-5">
-                                                <h2 className="line-clamp-2 font-semibold text-white">
-                                                    {
-                                                        product.name
-                                                    }
-                                                </h2>
-
-                                                {product.brand && (
-                                                    <p className="mt-2 text-sm text-slate-400">
-                                                        {
-                                                            product.brand
-                                                        }
-                                                    </p>
-                                                )}
-
-                                                {product.category && (
-                                                    <p className="mt-1 text-xs text-slate-500">
-                                                        {
-                                                            product.category
-                                                        }
-                                                    </p>
-                                                )}
-
-                                                <div className="mt-4 border-t border-slate-800 pt-3">
-                                                    <p className="text-xs text-slate-500">
-                                                        Barcode
-                                                    </p>
-
-                                                    <p className="mt-1 text-sm text-slate-300">
-                                                        {
-                                                            product.barcode
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </Link>
+                                            product={
+                                                product
+                                            }
+                                        />
                                     ),
                                 )}
                             </div>
                         </section>
                     )}
 
-                {/* Initial state */}
                 {!isLoading &&
                     !error &&
                     !hasSearched && (
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900 px-6 py-16 text-center">
-                            <Search
-                                size={48}
-                                className="mx-auto mb-4 text-slate-500"
-                            />
-
-                            <h2 className="text-xl font-semibold">
-                                Find a product
-                            </h2>
-
-                            <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-                                Enter a product name, brand,
-                                barcode, or model number to
-                                find products in ScanIQ.
-                            </p>
-                        </div>
+                        <EmptyState
+                            title="Find a product"
+                            text="Start with a product name, brand, barcode, or model number."
+                        />
                     )}
             </div>
         </main>
+    );
+}
+
+function ProductResult({
+    product,
+}: {
+    product: ProductSearchItem;
+}) {
+    return (
+        <Link
+            to={`/products/${product.barcode}`}
+            className="group panel overflow-hidden rounded-[1.5rem] transition hover:-translate-y-1 hover:border-teal-200 hover:shadow-xl"
+        >
+            <div className="flex h-48 items-center justify-center bg-slate-50 p-5">
+                {product.imageUrl ? (
+                    <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-contain transition group-hover:scale-105"
+                    />
+                ) : (
+                    <Package
+                        size={52}
+                        className="text-slate-300"
+                    />
+                )}
+            </div>
+
+            <div className="p-5">
+                <p className="text-xs font-semibold uppercase text-teal-700">
+                    {product.category ?? "Product"}
+                </p>
+
+                <h2 className="mt-2 line-clamp-2 font-bold text-slate-950">
+                    {product.name}
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                    {product.brand ?? "Unknown brand"}
+                </p>
+
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                    <p className="text-xs font-medium text-slate-400">
+                        {product.barcode}
+                    </p>
+                    <ArrowRight
+                        size={18}
+                        className="text-slate-400 transition group-hover:text-teal-700"
+                    />
+                </div>
+            </div>
+        </Link>
+    );
+}
+
+function EmptyState({
+    title,
+    text,
+}: {
+    title: string;
+    text: string;
+}) {
+    return (
+        <div className="surface rounded-[1.75rem] px-6 py-16 text-center">
+            <Package
+                size={48}
+                className="mx-auto mb-4 text-slate-300"
+            />
+            <h2 className="text-xl font-bold text-slate-950">
+                {title}
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                {text}
+            </p>
+        </div>
     );
 }
 

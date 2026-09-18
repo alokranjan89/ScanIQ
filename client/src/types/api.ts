@@ -32,30 +32,17 @@ export type ProductPrice = {
 
 export type ProductNutrition = {
     id: number;
-
-    servingSize?: string | null;
-
-    /*
-     * These fields intentionally use
-     * number | null rather than
-     * number | null | undefined.
-     *
-     * ProductDetailsPage passes them directly
-     * to NutritionCard.
-     */
     calories: number | null;
-    energyKcal: number | null;
-
-    proteinG: number | null;
-    carbohydratesG: number | null;
-    sugarsG: number | null;
-    fatG: number | null;
-    saturatedFatG: number | null;
-    fiberG: number | null;
-    saltG: number | null;
-    sodiumMg: number | null;
-
-    nutriScore?: string | null;
+    protein: number | null;
+    carbohydrates: number | null;
+    fat: number | null;
+    saturatedFat: number | null;
+    sugars: number | null;
+    fiber: number | null;
+    salt: number | null;
+    sodium: number | null;
+    unit: string | null;
+    source?: string | null;
 };
 
 export type ProductSource = {
@@ -182,7 +169,9 @@ export type ScanHistoryItem = {
 };
 
 export type ScanHistoryResponse = {
-    data: ScanHistoryItem[];
+    data: {
+        scans: ScanHistoryItem[];
+    };
 };
 
 export type ApiSuccessResponse<T> = {

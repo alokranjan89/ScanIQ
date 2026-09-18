@@ -19,7 +19,18 @@ export interface Product {
     key: string;
     value: string;
   }>;
-  nutrition?: Record<string, unknown> | null;
+  nutrition?: {
+    calories?: number | null;
+    protein?: number | null;
+    carbohydrates?: number | null;
+    fat?: number | null;
+    saturatedFat?: number | null;
+    sugars?: number | null;
+    fiber?: number | null;
+    salt?: number | null;
+    sodium?: number | null;
+    unit?: string | null;
+  } | null;
   prices?: Array<{
     amount: number;
     priceType: string;

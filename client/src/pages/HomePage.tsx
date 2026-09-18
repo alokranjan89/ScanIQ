@@ -1,6 +1,15 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+    ArrowRight,
+    BadgeCheck,
+    Bot,
+    GitCompare,
+    ScanLine,
+    Search,
+    ShieldCheck,
+} from "lucide-react";
 
 function HomePage() {
     const navigate = useNavigate();
@@ -54,119 +63,162 @@ function HomePage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-950 text-white">
-            <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-6">
-                <div className="w-full max-w-xl text-center">
-
-                    {/* Hero */}
-                    <div className="mb-10">
-                        <h1 className="text-5xl font-bold tracking-tight">
-                            ScanIQ
-                        </h1>
-
-                        <p className="mt-4 text-lg text-slate-400">
+        <main className="page-shell">
+            <div className="page-container">
+                <section className="grid min-h-[calc(100vh-9rem)] items-center gap-10 lg:grid-cols-[1.08fr_0.92fr]">
+                    <div className="max-w-3xl">
+                        <p className="eyebrow mb-4">
                             Scan. Verify. Understand.
                         </p>
-                    </div>
 
-                    {/* Barcode lookup */}
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-                        <h2 className="text-2xl font-semibold">
-                            Find a Product
-                        </h2>
+                        <h1 className="heading-xl">
+                            Product intelligence at the
+                            point of scan.
+                        </h1>
 
-                        <p className="mt-2 text-sm text-slate-400">
-                            Enter a product barcode to get
-                            product information and
-                            verification details.
+                        <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+                            ScanIQ turns barcodes into
+                            structured product facts,
+                            verification signals, plain
+                            language AI answers, and
+                            side-by-side comparisons.
                         </p>
 
-                        <form
-                            onSubmit={handleSubmit}
-                            className="mt-6"
-                        >
-                            <label
-                                htmlFor="barcode"
-                                className="mb-2 block text-left text-sm font-medium text-slate-300"
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            <Link
+                                to="/scan"
+                                className="btn-primary"
                             >
-                                Barcode
-                            </label>
+                                <ScanLine size={19} />
+                                Open scanner
+                            </Link>
 
-                            <input
-                                id="barcode"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                placeholder="Enter barcode e.g. 8904340720005"
-                                value={barcode}
-                                onChange={(event) => {
-                                    setBarcode(
-                                        event.target.value,
-                                    );
-                                    setError("");
-                                }}
-                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                            />
-
-                            {error && (
-                                <p className="mt-2 text-left text-sm text-red-400">
-                                    {error}
-                                </p>
-                            )}
-
-                            <button
-                                type="submit"
-                                className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-500 active:scale-[0.99]"
+                            <Link
+                                to="/search"
+                                className="btn-secondary"
                             >
-                                Find Product
-                            </button>
-                        </form>
+                                <Search size={19} />
+                                Search catalog
+                            </Link>
+                        </div>
 
-                        <div className="mt-6 border-t border-slate-800 pt-5">
-                            <p className="text-xs text-slate-500">
-                                Supported barcode lengths:
-                                8, 12, and 13 digits
-                            </p>
+                        <div className="mt-10 grid gap-3 sm:grid-cols-3">
+                            {[
+                                {
+                                    icon: ShieldCheck,
+                                    label: "Source-aware verification",
+                                },
+                                {
+                                    icon: Bot,
+                                    label: "Grounded AI answers",
+                                },
+                                {
+                                    icon: GitCompare,
+                                    label: "Product comparison",
+                                },
+                            ].map((item) => {
+                                const Icon = item.icon;
+
+                                return (
+                                    <div
+                                        key={item.label}
+                                        className="soft-panel rounded-2xl p-4"
+                                    >
+                                        <Icon
+                                            size={20}
+                                            className="text-teal-700"
+                                        />
+                                        <p className="mt-3 text-sm font-semibold text-slate-700">
+                                            {item.label}
+                                        </p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* Alternative actions */}
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="surface rounded-[2rem] p-5 sm:p-7">
+                        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 text-slate-950 shadow-xl shadow-slate-900/5">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="eyebrow text-teal-700">
+                                        Quick lookup
+                                    </p>
+                                    <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
+                                        Enter barcode
+                                    </h2>
+                                </div>
 
-                        {/* Camera scanner */}
-                        <Link
-                            to="/scan"
-                            className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-4 font-medium text-white transition hover:border-slate-500 hover:bg-slate-800"
-                        >
-                            <span className="block text-base">
-                                📷 Scan with Camera
-                            </span>
+                                <span className="icon-tile">
+                                    <ScanLine size={24} />
+                                </span>
+                            </div>
 
-                            <span className="mt-1 block text-xs text-slate-500">
-                                Scan a QR code or barcode
-                            </span>
-                        </Link>
+                            <form
+                                onSubmit={handleSubmit}
+                                className="mt-6"
+                            >
+                                <label
+                                    htmlFor="barcode"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
+                                >
+                                    Product barcode
+                                </label>
 
-                        {/* Search */}
-                        <Link
-                            to="/search"
-                            className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-4 font-medium text-white transition hover:border-slate-500 hover:bg-slate-800"
-                        >
-                            <span className="block text-base">
-                                🔎 Search Products
-                            </span>
+                                <input
+                                    id="barcode"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    placeholder="e.g. 8904340720005"
+                                    value={barcode}
+                                    onChange={(event) => {
+                                        setBarcode(
+                                            event.target.value,
+                                        );
+                                        setError("");
+                                    }}
+                                    className="w-full rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-4 text-lg font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10"
+                                />
 
-                            <span className="mt-1 block text-xs text-slate-500">
-                                Search by name, brand, or barcode
-                            </span>
-                        </Link>
+                                {error && (
+                                    <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                        {error}
+                                    </p>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    className="btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white shadow-lg shadow-teal-700/20"
+                                >
+                                    Find product
+                                    <ArrowRight size={18} />
+                                </button>
+                            </form>
+
+                            <div className="mt-6 grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                                    <BadgeCheck
+                                        size={18}
+                                        className="text-teal-700"
+                                    />
+                                    <p className="mt-2 text-sm font-semibold text-slate-800">
+                                        8, 12, 13 digit support
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                                    <ShieldCheck
+                                        size={18}
+                                        className="text-amber-600"
+                                    />
+                                    <p className="mt-2 text-sm font-semibold text-slate-800">
+                                        Clear verification status
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <p className="mt-6 text-sm text-slate-500">
-                        Scan, search, and understand products
-                        with ScanIQ.
-                    </p>
-                </div>
+                </section>
             </div>
         </main>
     );

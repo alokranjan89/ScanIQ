@@ -68,11 +68,17 @@ export const login = async (
     return response.data;
 };
 
+type MeApiResponse = {
+    data: MeResponse;
+};
+
 export const getCurrentUser =
     async (): Promise<MeResponse> => {
-        return apiRequest<MeResponse>(
-            "/auth/me",
-        );
+        const response =
+            await apiRequest<MeApiResponse>(
+                "/auth/me",
+            );
+        return response.data;
     };
 
 export const logout = async (): Promise<void> => {

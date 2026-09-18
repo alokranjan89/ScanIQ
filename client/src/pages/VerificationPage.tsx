@@ -7,6 +7,9 @@ import {
 import {
     verifyProduct,
 } from "../api/verification.api";
+import {
+    getProductById,
+} from "../api/products.api";
 
 import type {
     VerificationCheck,
@@ -22,6 +25,9 @@ function VerificationPage() {
 
     const [verification, setVerification] =
         useState<VerificationResult | null>(null);
+
+    const [productBarcode, setProductBarcode] =
+        useState<string | null>(null);
 
     const [isLoading, setIsLoading] =
         useState(true);
@@ -48,10 +54,18 @@ function VerificationPage() {
                 setIsLoading(true);
                 setError(null);
 
-                const result =
-                    await verifyProduct(id);
+                const [
+                    result,
+                    product,
+                ] = await Promise.all([
+                    verifyProduct(id),
+                    getProductById(id),
+                ]);
 
                 setVerification(result);
+                setProductBarcode(
+                    product.barcode,
+                );
             } catch (err) {
                 setError(
                     err instanceof Error
@@ -94,7 +108,7 @@ function VerificationPage() {
 
                     <Link
                         to="/"
-                        className="mt-5 inline-block rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+                        className="mt-5 inline-block rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
                     >
                         Back to home
                     </Link>
@@ -108,16 +122,17 @@ function VerificationPage() {
     }
 
     return (
-        <main className="mx-auto max-w-4xl px-4 py-8">
+        <main className="page-shell">
+            <div className="mx-auto max-w-4xl">
             <Link
                 to={
-                    productId
-                        ? `/products/${productId}`
+                    productBarcode
+                        ? `/products/${productBarcode}`
                         : "/"
                 }
-                className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                className="text-sm font-semibold text-slate-500 hover:text-slate-950"
             >
-                ← Back
+                Back to product
             </Link>
 
             <div className="mt-6">
@@ -125,7 +140,7 @@ function VerificationPage() {
                     Product Verification
                 </h1>
 
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-slate-600">
                     Verification is based on available
                     product sources and their agreement.
                 </p>
@@ -273,6 +288,7 @@ function VerificationPage() {
                     counterfeit.
                 </p>
             </div>
+            </div>
         </main>
     );
 }
@@ -403,3 +419,4 @@ function getCheckConfig(
 }
 
 export default VerificationPage;
+
