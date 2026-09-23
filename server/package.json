@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
+  "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --import tsx --test --test-force-exit src/**/*.test.ts",
+    "test": "node --import tsx --test --test-force-exit src/error.middleware.test.ts src/routes/health.integration.test.ts src/routes/product.integration.test.ts src/services/ai.service.test.ts src/services/gemini.provider.test.ts src/services/ingredient-parser.test.ts src/services/openfoodfacts.provider.test.ts src/services/password.service.test.ts src/services/product.normalizer.test.ts src/services/product.service.test.ts src/services/scan.service.test.ts src/services/search.service.test.ts src/services/token.service.test.ts src/services/upcitemdb.provider.test.ts src/services/verification.service.test.ts src/validators/auth.validator.test.ts src/validators/product.validator.test.ts",
     "test:ai": "node --import tsx --test src/services/gemini.provider.test.ts",
+    "test:vitest": "vitest run",
     "test:watch": "vitest"
-},
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

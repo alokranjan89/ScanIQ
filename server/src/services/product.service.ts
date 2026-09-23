@@ -15,16 +15,40 @@ import {
     deleteCache,
 } from "./redis.service.js";
 
-import { productCacheKey } from "../utils/cache-key.js";
-import { UPCItemDBProvider } from "./upcitemdb.provider.js";
-import { OpenFoodFactsProvider } from "./openfoodfacts.provider.js";
-import { normalizeProduct } from "./product.normalizer.js";
-import { AppError } from "../utils/app-error.js";
-import { CACHE_TTL } from "../config/cache.js";
+import {
+    productCacheKey,
+} from "../utils/cache-key.js";
+
+import {
+    UPCItemDBProvider,
+} from "./upcitemdb.provider.js";
+
+import {
+    OpenFoodFactsProvider,
+} from "./openfoodfacts.provider.js";
+
+import {
+    normalizeProduct,
+} from "./product.normalizer.js";
+
+import {
+    AppError,
+} from "../utils/app-error.js";
+
+import {
+    CACHE_TTL,
+} from "../config/cache.js";
 
 import type {
     ExternalProduct,
 } from "./product-provider.service.js";
+
+import {
+    calculateNutritionGrade,
+    type NutritionGradeResult,
+    type NutritionUnit,
+    type NutritionGradeNutrition,
+} from "./nutrition-grade.service.js";
 
 
 /*
@@ -47,7 +71,7 @@ const foodProvider =
  *
  * Keeping dependencies together makes the service easier
  * to test and allows providers/repositories to be replaced
- * with mocks later.
+ * with mocks.
  */
 
 export const productServiceDependencies = {
@@ -63,6 +87,135 @@ export const productServiceDependencies = {
     generalProvider,
     foodProvider,
 };
+
+
+/*
+ * ---------------------------------------------------------
+ * PRODUCT TYPE
+ * ---------------------------------------------------------
+ */
+
+export interface ProductWithNutrition {
+    id: number;
+
+    barcode: string;
+
+    modelNumber?: string | null;
+
+    name: string;
+
+    brand?: string | null;
+
+    category?: string | null;
+
+    description?: string | null;
+
+    imageUrl?: string | null;
+
+    manufacturer?: string | null;
+
+    country?: string | null;
+
+    createdAt: Date;
+
+    updatedAt: Date;
+
+    nutrition?: {
+        calories?: number | null;
+
+        protein?: number | null;
+
+        carbohydrates?: number | null;
+
+        fat?: number | null;
+
+        saturatedFat?: number | null;
+
+        sugars?: number | null;
+
+        fiber?: number | null;
+
+        salt?: number | null;
+
+        sodium?: number | null;
+
+        /*
+         * IMPORTANT:
+         *
+         * Nutrition can be reported per 100g
+         * or per 100ml.
+         */
+
+        unit?:
+            | "per_100g"
+            | "per_100ml"
+            | null;
+
+        source?: string | null;
+    } | null;
+
+    ingredients?: Array<{
+        id: number;
+
+        productId: number;
+
+        name: string;
+
+        description?: string | null;
+    }>;
+
+    attributes?: Array<{
+        id: number;
+
+        productId: number;
+
+        key: string;
+
+        value: string;
+    }>;
+
+    prices?: Array<{
+        id: number;
+
+        productId: number;
+
+        amount: Prisma.Decimal;
+
+        priceType: string;
+
+        currency: string;
+
+        merchant?: string | null;
+
+        source?: string | null;
+
+        availability?: string | null;
+
+        createdAt: Date;
+
+        updatedAt: Date;
+    }>;
+
+    sources?: Array<{
+        id: number;
+
+        productId: number;
+
+        provider: string;
+
+        sourceUrl?: string | null;
+
+        rawData?: Prisma.JsonValue | null;
+
+        isPrimary: boolean;
+
+        createdAt: Date;
+
+        updatedAt: Date;
+    }>;
+
+    nutritionGrade?: NutritionGradeResult;
+}
 
 
 /*
@@ -105,22 +258,24 @@ const isFoodProduct = (
  *
  * Build a unique list of provider sources.
  *
- * Providers can sometimes return the same provider more
- * than once during enrichment. We deduplicate them here.
- *
- * rawData MUST be preserved because the verification
- * service uses original provider responses as evidence.
+ * rawData is preserved because verification
+ * uses provider responses as evidence.
  */
 
 const buildSourceEntries = (
     products: Array<{
         source?: string;
+
         sourceUrl?: string;
 
         sources?: Array<{
             provider: string;
+
             sourceUrl?: string;
-            rawData?: Prisma.InputJsonValue;
+
+            rawData?:
+                Prisma.InputJsonValue;
+
             isPrimary?: boolean;
         }>;
     }>
@@ -131,8 +286,12 @@ const buildSourceEntries = (
             string,
             {
                 provider: string;
+
                 sourceUrl?: string;
-                rawData?: Prisma.InputJsonValue;
+
+                rawData?:
+                    Prisma.InputJsonValue;
+
                 isPrimary: boolean;
             }
         >();
@@ -152,7 +311,8 @@ const buildSourceEntries = (
                             sourceUrl:
                                 product.sourceUrl,
 
-                            isPrimary: true,
+                            isPrimary:
+                                true,
                         },
                     ]
                     : []
@@ -169,7 +329,6 @@ const buildSourceEntries = (
             const normalizedProvider =
                 entry.provider.trim();
 
-
             const normalizedUrl =
                 entry.sourceUrl?.trim();
 
@@ -185,9 +344,6 @@ const buildSourceEntries = (
                 );
 
 
-            /*
-             * First source from this provider.
-             */
             if (!previous) {
 
                 byProvider.set(
@@ -213,39 +369,26 @@ const buildSourceEntries = (
             }
 
 
-            /*
-             * Preserve a source URL if the
-             * previous entry didn't have one.
-             */
             if (
                 !previous.sourceUrl &&
                 normalizedUrl
             ) {
+
                 previous.sourceUrl =
                     normalizedUrl;
             }
 
 
-            /*
-             * Preserve raw provider response.
-             *
-             * If the first entry did not have
-             * rawData but a later entry does,
-             * keep the later rawData.
-             */
             if (
                 !previous.rawData &&
                 entry.rawData
             ) {
+
                 previous.rawData =
                     entry.rawData;
             }
 
 
-            /*
-             * Once a provider is primary,
-             * keep it primary.
-             */
             previous.isPrimary =
                 previous.isPrimary ||
                 Boolean(
@@ -263,6 +406,148 @@ const buildSourceEntries = (
 
 /*
  * ---------------------------------------------------------
+ * NUTRITION HELPERS
+ * ---------------------------------------------------------
+ */
+
+
+/*
+ * Convert the database/provider nutrition object
+ * into the strict input expected by the grade engine.
+ *
+ * We do NOT convert per_100ml into per_100g.
+ */
+
+const normalizeNutritionForGrade = (
+    nutrition:
+        ProductWithNutrition["nutrition"]
+): NutritionGradeNutrition | null => {
+
+    if (!nutrition) {
+        return null;
+    }
+
+
+    let unit:
+        NutritionUnit;
+
+
+    if (
+        nutrition.unit ===
+        "per_100ml"
+    ) {
+
+        unit =
+            "per_100ml";
+
+    } else {
+
+        /*
+         * Existing products created before the
+         * per_100ml support use per_100g.
+         */
+
+        unit =
+            "per_100g";
+    }
+
+
+    return {
+
+        calories:
+            nutrition.calories,
+
+        protein:
+            nutrition.protein,
+
+        carbohydrates:
+            nutrition.carbohydrates,
+
+        fat:
+            nutrition.fat,
+
+        saturatedFat:
+            nutrition.saturatedFat,
+
+        sugars:
+            nutrition.sugars,
+
+        fiber:
+            nutrition.fiber,
+
+        salt:
+            nutrition.salt,
+
+        sodium:
+            nutrition.sodium,
+
+        unit,
+
+        source:
+            nutrition.source,
+    };
+};
+
+
+/*
+ * ---------------------------------------------------------
+ * ATTACH NUTRITION GRADE
+ * ---------------------------------------------------------
+ *
+ * Products without nutrition data are returned unchanged.
+ *
+ * This is important for:
+ *
+ * - existing product service tests
+ * - non-food products
+ * - products where nutrition isn't available
+ */
+
+const attachNutritionGrade = (
+    product:
+        ProductWithNutrition
+        | null
+): ProductWithNutrition | null => {
+
+    if (!product) {
+        return null;
+    }
+
+
+    /*
+     * Do not add a nutritionGrade field when
+     * nutrition data does not exist.
+     *
+     * This preserves the existing service behavior.
+     */
+
+    if (!product.nutrition) {
+        return product;
+    }
+
+
+    const nutritionInput =
+        normalizeNutritionForGrade(
+            product.nutrition
+        );
+
+
+    const nutritionGrade =
+        calculateNutritionGrade(
+            nutritionInput
+        );
+
+
+    return {
+        ...product,
+
+        nutritionGrade,
+    };
+};
+
+
+/*
+ * ---------------------------------------------------------
  * FETCH FRESH PRODUCT
  * ---------------------------------------------------------
  *
@@ -275,8 +560,6 @@ const buildSourceEntries = (
  * 5. PostgreSQL
  * 6. Redis
  *
- * IMPORTANT:
- *
  * Open Food Facts is called at most once per request.
  */
 
@@ -285,49 +568,45 @@ export const fetchFreshProduct = async (
 ) => {
 
     let externalProduct:
-        ExternalProduct | null = null;
+        ExternalProduct | null =
+        null;
 
 
-    /*
-     * Keep the Open Food Facts result.
-     *
-     * This prevents the same request from calling
-     * Open Food Facts twice.
-     */
     let foodProduct:
-        ExternalProduct | null = null;
+        ExternalProduct | null =
+        null;
 
 
-    /*
-     * Track provider failures separately.
-     *
-     * A failed UPCitemdb request should NOT make
-     * the whole request fail if Open Food Facts
-     * successfully returns the product.
-     */
     let generalProviderFailed =
         false;
+
 
     let foodProviderFailed =
         false;
 
 
-    const sourceProducts: Array<{
-        source?: string;
-        sourceUrl?: string;
+    const sourceProducts:
+        Array<{
+            source?: string;
 
-        sources?: Array<{
-            provider: string;
             sourceUrl?: string;
-            rawData?: Prisma.InputJsonValue;
-            isPrimary?: boolean;
-        }>;
-    }> = [];
+
+            sources?: Array<{
+                provider: string;
+
+                sourceUrl?: string;
+
+                rawData?:
+                    Prisma.InputJsonValue;
+
+                isPrimary?: boolean;
+            }>;
+        }> = [];
 
 
     /*
      * -----------------------------------------------------
-     * 1. TRY PRIMARY / GENERAL PROVIDER
+     * 1. PRIMARY PROVIDER
      * -----------------------------------------------------
      */
 
@@ -353,7 +632,6 @@ export const fetchFreshProduct = async (
         generalProviderFailed =
             true;
 
-
         console.error(
             "UPCitemdb provider failed:",
 
@@ -366,14 +644,8 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 2. FALLBACK TO OPEN FOOD FACTS
+     * 2. OPEN FOOD FACTS FALLBACK
      * -----------------------------------------------------
-     *
-     * If UPCitemdb did not return a product,
-     * Open Food Facts becomes the fallback.
-     *
-     * We store the result in foodProduct so that
-     * the enrichment stage does NOT call it again.
      */
 
     if (!externalProduct) {
@@ -404,7 +676,6 @@ export const fetchFreshProduct = async (
             foodProviderFailed =
                 true;
 
-
             console.error(
                 "Open Food Facts fallback failed:",
 
@@ -418,11 +689,8 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 3. BOTH PROVIDERS FAILED
+     * 3. PROVIDER FAILURE
      * -----------------------------------------------------
-     *
-     * Only return EXTERNAL_API_FAILURE when no provider
-     * was able to provide usable product data.
      */
 
     if (
@@ -443,11 +711,8 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 4. NO PRODUCT FOUND
+     * 4. PRODUCT NOT FOUND
      * -----------------------------------------------------
-     *
-     * Providers responded successfully but no product
-     * exists for this barcode.
      */
 
     if (!externalProduct) {
@@ -461,7 +726,6 @@ export const fetchFreshProduct = async (
                 CACHE_TTL.PRODUCT_NOT_FOUND
             );
 
-
         return null;
     }
 
@@ -470,15 +734,6 @@ export const fetchFreshProduct = async (
      * -----------------------------------------------------
      * 5. FOOD ENRICHMENT
      * -----------------------------------------------------
-     *
-     * If the primary provider gave us a food/beverage
-     * product, Open Food Facts can provide additional
-     * ingredients/nutrition information.
-     *
-     * BUT:
-     *
-     * If Open Food Facts was already called during
-     * fallback, reuse that result.
      */
 
     let enrichedProduct =
@@ -494,9 +749,10 @@ export const fetchFreshProduct = async (
         try {
 
             /*
-             * Only call Open Food Facts if we
-             * haven't already called it.
+             * Reuse the Open Food Facts result
+             * if it was already fetched.
              */
+
             if (!foodProduct) {
 
                 foodProduct =
@@ -510,52 +766,33 @@ export const fetchFreshProduct = async (
 
             if (foodProduct) {
 
-                /*
-                 * Add provider data.
-                 *
-                 * buildSourceEntries() will
-                 * deduplicate the provider.
-                 */
                 sourceProducts.push(
                     foodProduct
                 );
 
 
                 enrichedProduct = {
+
                     ...enrichedProduct,
 
 
-                    /*
-                     * Prefer Open Food Facts
-                     * ingredients when available.
-                     */
                     ingredients:
                         foodProduct.ingredients ??
                         enrichedProduct.ingredients,
 
 
-                    /*
-                     * Merge attributes from both
-                     * providers.
-                     */
                     attributes: {
                         ...enrichedProduct.attributes,
+
                         ...foodProduct.attributes,
                     },
 
 
-                    /*
-                     * Prefer Open Food Facts
-                     * nutrition when available.
-                     */
                     nutrition:
                         foodProduct.nutrition ??
                         enrichedProduct.nutrition,
 
 
-                    /*
-                     * Keep primary provider identity.
-                     */
                     source:
                         enrichedProduct.source,
 
@@ -564,9 +801,6 @@ export const fetchFreshProduct = async (
                         enrichedProduct.sourceUrl,
 
 
-                    /*
-                     * Build deduplicated source list.
-                     */
                     sources:
                         buildSourceEntries([
                             enrichedProduct,
@@ -580,8 +814,7 @@ export const fetchFreshProduct = async (
             /*
              * Food enrichment is optional.
              *
-             * If it fails, we still keep the
-             * primary provider's product data.
+             * The primary product remains usable.
              */
 
             console.error(
@@ -597,12 +830,8 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 6. BUILD SOURCE / PROVENANCE
+     * 6. SOURCE / PROVENANCE
      * -----------------------------------------------------
-     *
-     * The first provider is treated as primary.
-     *
-     * rawData is preserved.
      */
 
     const normalizedSources =
@@ -620,7 +849,7 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 7. NORMALIZE EXTERNAL DATA
+     * 7. NORMALIZE
      * -----------------------------------------------------
      */
 
@@ -635,7 +864,7 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 8. CHECK POSTGRESQL
+     * 8. FIND EXISTING PRODUCT
      * -----------------------------------------------------
      */
 
@@ -651,10 +880,8 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 9. EXISTING PRODUCT
+     * 9. UPDATE EXISTING PRODUCT
      * -----------------------------------------------------
-     *
-     * Refresh provider-backed information.
      */
 
     if (existingProduct) {
@@ -701,16 +928,14 @@ export const fetchFreshProduct = async (
                             normalizedProduct.sources,
                     }
                 );
-    }
 
+    } else {
 
-    /*
-     * -----------------------------------------------------
-     * 10. NEW PRODUCT
-     * -----------------------------------------------------
-     */
-
-    else {
+        /*
+         * -------------------------------------------------
+         * 10. CREATE NEW PRODUCT
+         * -------------------------------------------------
+         */
 
         try {
 
@@ -766,17 +991,7 @@ export const fetchFreshProduct = async (
         } catch (error) {
 
             /*
-             * Two requests may discover
-             * the same new barcode at the
-             * same time.
-             *
-             * PostgreSQL protects the
-             * unique barcode constraint.
-             *
-             * If another request created
-             * the product first, retrieve
-             * that product instead of
-             * failing the API request.
+             * Concurrent barcode creation.
              */
 
             if (
@@ -810,7 +1025,7 @@ export const fetchFreshProduct = async (
 
     /*
      * -----------------------------------------------------
-     * 11. CACHE FINAL PRODUCT
+     * 11. CACHE
      * -----------------------------------------------------
      */
 
@@ -824,7 +1039,13 @@ export const fetchFreshProduct = async (
         );
 
 
-    return savedProduct;
+    /*
+     * Attach grade to the returned product.
+     */
+
+    return attachNutritionGrade(
+        savedProduct as ProductWithNutrition
+    );
 };
 
 
@@ -832,31 +1053,23 @@ export const fetchFreshProduct = async (
  * ---------------------------------------------------------
  * GET PRODUCT BY BARCODE
  * ---------------------------------------------------------
- *
- * Lookup order:
- *
- * Redis
- *   ↓
- * PostgreSQL
- *   ↓
- * External providers
  */
 
 export const getProductByBarcode = async (
     barcode: string
 ) => {
 
-    /*
-     * -----------------------------------------------------
-     * 1. REDIS
-     * -----------------------------------------------------
-     */
-
     const cacheKey =
         productCacheKey(
             barcode
         );
 
+
+    /*
+     * -----------------------------------------------------
+     * 1. REDIS
+     * -----------------------------------------------------
+     */
 
     const cachedProduct =
         await productServiceDependencies
@@ -867,7 +1080,17 @@ export const getProductByBarcode = async (
 
     if (cachedProduct.hit) {
 
-        return cachedProduct.value;
+        /*
+         * Cached product may already contain
+         * nutritionGrade.
+         *
+         * If not, calculate it from nutrition.
+         */
+
+        return attachNutritionGrade(
+            cachedProduct.value as
+                ProductWithNutrition
+        );
     }
 
 
@@ -886,19 +1109,26 @@ export const getProductByBarcode = async (
 
     if (existingProduct) {
 
+        const productWithGrade =
+            attachNutritionGrade(
+                existingProduct as
+                    ProductWithNutrition
+            );
+
+
         /*
-         * Warm Redis cache.
+         * Warm Redis.
          */
 
         await productServiceDependencies
             .setJsonCache(
                 cacheKey,
-                existingProduct,
+                productWithGrade,
                 CACHE_TTL.PRODUCT
             );
 
 
-        return existingProduct;
+        return productWithGrade;
     }
 
 
@@ -925,11 +1155,6 @@ export const getProductByBarcode = async (
         );
 
 
-        /*
-         * Never expose raw provider/database
-         * errors to the frontend.
-         */
-
         if (
             error instanceof AppError
         ) {
@@ -950,8 +1175,6 @@ export const getProductByBarcode = async (
  * ---------------------------------------------------------
  * REFRESH PRODUCT
  * ---------------------------------------------------------
- *
- * Forces fresh provider data.
  */
 
 export const refreshProductByBarcode =
@@ -960,7 +1183,7 @@ export const refreshProductByBarcode =
     ) => {
 
         /*
-         * Remove stale Redis data.
+         * Delete stale Redis data.
          */
 
         const cacheKey =
@@ -976,8 +1199,7 @@ export const refreshProductByBarcode =
 
 
         /*
-         * Fetch fresh provider data and
-         * update/create the product.
+         * Fetch fresh provider data.
          */
 
         const product =
@@ -998,95 +1220,3 @@ export const refreshProductByBarcode =
 
         return product;
     };
-
-
-/*
- * ---------------------------------------------------------
- * ADD PRODUCT
- * ---------------------------------------------------------
- */
-
-export const addProduct = async (
-    data: {
-        barcode: string;
-
-        name: string;
-
-        brand?: string;
-
-        category?: string;
-
-        description?: string;
-
-        imageUrl?: string;
-
-        manufacturer?: string;
-
-        country?: string;
-    }
-) => {
-
-    return productServiceDependencies
-        .createProduct(
-            data
-        );
-};
-
-
-/*
- * ---------------------------------------------------------
- * UPDATE PRODUCT
- * ---------------------------------------------------------
- */
-
-export const updateProduct = async (
-    productId: number,
-    barcode: string,
-    data: {
-        name?: string;
-
-        brand?: string;
-
-        category?: string;
-
-        description?: string;
-
-        imageUrl?: string;
-
-        manufacturer?: string;
-
-        country?: string;
-    }
-) => {
-
-    /*
-     * Update PostgreSQL.
-     */
-
-    const updatedProduct =
-        await productServiceDependencies
-            .updateProductRepository(
-                productId,
-                data
-            );
-
-
-    /*
-     * Invalidate Redis so the
-     * next request gets fresh data.
-     */
-
-    const cacheKey =
-        productCacheKey(
-            barcode
-        );
-
-
-    await productServiceDependencies
-        .deleteCache(
-            cacheKey
-        );
-
-
-    return updatedProduct;
-};
