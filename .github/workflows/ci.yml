@@ -98,6 +98,14 @@ jobs:
       - name: Apply database migrations
         run: npx prisma migrate deploy
 
+      - name: Seed integration test data
+        run: |
+          npx prisma db execute --stdin <<'SQL'
+          INSERT INTO "Product" ("barcode", "name", "updatedAt")
+          VALUES ('012993441012', 'CI Test Product', NOW())
+          ON CONFLICT ("barcode") DO NOTHING;
+          SQL
+
       - name: Build
         run: npm run build
 
