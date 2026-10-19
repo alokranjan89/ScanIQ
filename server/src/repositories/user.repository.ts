@@ -33,3 +33,23 @@ export const createUser = async (data: {
         },
     });
 };
+
+export const deleteUserById = async (userId: number) => {
+    return prisma.user.delete({
+        where: { id: userId },
+    });
+};
+
+export const updateUserPassword = async (
+    userId: number,
+    passwordHash: string,
+) => {
+    return prisma.$transaction(async (tx) => {
+        const user = await tx.user.update({
+            where: { id: userId },
+            data: { passwordHash, tokenVersion: { increment: 1 } },
+        });
+        await tx.passwordResetToken.deleteMany({ where: { userId } });
+        return user;
+    });
+};

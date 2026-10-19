@@ -13,7 +13,8 @@ import {
 import BarcodeScanner from "../components/BarcodeScanner";
 import { getProductByBarcode } from "../services/product.service";
 import { createScanHistory } from "../api/scans.api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
+import { loadPreferences } from "../lib/preferences";
 
 function ScannerPage() {
     const navigate = useNavigate();
@@ -54,7 +55,7 @@ function ScannerPage() {
                         normalizedBarcode,
                     );
 
-                if (isAuthenticated) {
+                if (isAuthenticated && loadPreferences().saveHistory) {
                     try {
                         await createScanHistory(
                             product.id,

@@ -62,7 +62,7 @@ export const requireAuth = async (
                 payload.userId
             );
 
-        if (!user) {
+        if (!user || user.tokenVersion !== payload.tokenVersion) {
             throw new AppError(
                 401,
                 "UNAUTHORIZED",

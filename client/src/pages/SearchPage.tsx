@@ -30,7 +30,7 @@ function SearchPage() {
     const [results, setResults] =
         useState<ProductSearchItem[]>([]);
     const [isLoading, setIsLoading] =
-        useState(false);
+        useState(Boolean(initialQuery.trim()));
     const [error, setError] =
         useState<string | null>(null);
     const [hasSearched, setHasSearched] =
@@ -38,8 +38,6 @@ function SearchPage() {
 
     useEffect(() => {
         if (!initialQuery.trim()) {
-            setResults([]);
-            setHasSearched(false);
             return;
         }
 
@@ -47,9 +45,6 @@ function SearchPage() {
 
         const runSearch = async () => {
             try {
-                setIsLoading(true);
-                setError(null);
-
                 const products =
                     await searchProducts(
                         initialQuery,
@@ -58,6 +53,7 @@ function SearchPage() {
                 if (!cancelled) {
                     setResults(products);
                     setHasSearched(true);
+                    setError(null);
                 }
             } catch (err) {
                 if (cancelled) {
@@ -98,9 +94,12 @@ function SearchPage() {
             setResults([]);
             setHasSearched(false);
             setError(null);
+            setIsLoading(false);
             return;
         }
 
+        setIsLoading(true);
+        setError(null);
         setSearchParams({
             q: trimmedQuery,
         });

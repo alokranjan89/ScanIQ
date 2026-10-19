@@ -22,12 +22,10 @@ function HistoryPage() {
 
     const loadHistory = useCallback(async () => {
         try {
-            setIsLoading(true);
-            setError(null);
-
             const data = await getScanHistory();
 
             setHistory(data);
+            setError(null);
         } catch (err) {
             const message =
                 err instanceof Error
@@ -41,8 +39,20 @@ function HistoryPage() {
     }, []);
 
     useEffect(() => {
-        void loadHistory();
+        const timeoutId = window.setTimeout(() => {
+            void loadHistory();
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
     }, [loadHistory]);
+
+    const handleRetry = () => {
+        setIsLoading(true);
+        setError(null);
+        void loadHistory();
+    };
 
     const handleDelete = async (scanId: number) => {
         try {
@@ -115,7 +125,8 @@ function HistoryPage() {
                     </p>
 
                     <button
-                        onClick={() => void loadHistory()}
+                        type="button"
+                        onClick={handleRetry}
                         className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                     >
                         Try again

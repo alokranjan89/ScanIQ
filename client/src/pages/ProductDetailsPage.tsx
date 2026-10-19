@@ -35,6 +35,7 @@ import type {
     VerificationCheck,
     VerificationResult,
 } from "../api/verification.api";
+import { loadPreferences } from "../lib/preferences";
 
 const formatPrice = (price: ProductPrice) => {
     const amount =
@@ -157,10 +158,14 @@ export default function ProductDetailsPage() {
         useState<Product | null>(null);
 
     const [loading, setLoading] =
-        useState(true);
+        useState(Boolean(barcode));
 
     const [error, setError] =
-        useState<string | null>(null);
+        useState<string | null>(() =>
+            barcode
+                ? null
+                : "Product barcode is missing.",
+        );
 
     const [favorite, setFavorite] =
         useState(false);
@@ -198,17 +203,12 @@ export default function ProductDetailsPage() {
 
     useEffect(() => {
         if (!barcode) {
-            setError("Product barcode is missing.");
-            setLoading(false);
             return;
         }
 
         let cancelled = false;
 
         const loadProduct = async () => {
-            setLoading(true);
-            setError(null);
-
             try {
                 const result =
                     await getProductByBarcode(
@@ -220,6 +220,7 @@ export default function ProductDetailsPage() {
                 }
 
                 setProduct(result);
+                setError(null);
 
                 try {
                     const favorites =
@@ -477,21 +478,22 @@ export default function ProductDetailsPage() {
 
                                 {/* Compare */}
                                 <Link
-                                    to={`/compare?product=${product.id}`}
+                                    to={`/compare?productId1=${product.id}`}
                                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                                 >
                                     Compare
                                 </Link>
 
                                 {/* Ask AI */}
-                                <Link
-                                    to={`/ask-ai?product=${product.id}`}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-                                >
-                                    <Bot className="h-4 w-4" />
-
-                                    Ask AI
-                                </Link>
+                                {loadPreferences().aiExplanations && (
+                                    <Link
+                                        to={`/products/${product.barcode}/ai`}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                                    >
+                                        <Bot className="h-4 w-4" />
+                                        Ask AI
+                                    </Link>
+                                )}
 
                                 {/* Verify */}
                                 <button

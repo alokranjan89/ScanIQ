@@ -1,9 +1,4 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-} from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -16,46 +11,16 @@ import {
     login as loginApi,
     logout as logoutApi,
     register as registerApi,
+    removeAccount as removeAccountApi,
 } from "../api/auth.api";
 
+import { AuthContext } from "./auth-context";
 import type {
-    AuthResponse,
-    User,
-} from "../types/api";
-
-type AuthCredentials = {
-    email: string;
-    password: string;
-};
-
-type RegisterCredentials = {
-    name: string;
-    email: string;
-    password: string;
-};
-
-type AuthContextValue = {
-    user: User | null;
-    isAuthenticated: boolean;
-    isLoading: boolean;
-
-    login: (
-        credentials: AuthCredentials,
-    ) => Promise<AuthResponse>;
-
-    register: (
-        credentials: RegisterCredentials,
-    ) => Promise<AuthResponse>;
-
-    logout: () => Promise<void>;
-
-    refreshUser: () => Promise<void>;
-};
-
-const AuthContext =
-    createContext<AuthContextValue | undefined>(
-        undefined,
-    );
+    AuthContextValue,
+    AuthCredentials,
+    RegisterCredentials,
+} from "./auth-context";
+import type { AuthResponse, User } from "../types/api";
 
 type AuthProviderProps = {
     children: ReactNode;
@@ -190,6 +155,11 @@ export function AuthProvider({
         }
     };
 
+    const deleteAccount = async (password: string): Promise<void> => {
+        await removeAccountApi(password);
+        setUser(null);
+    };
+
     /*
      * Refresh current user
      */
@@ -236,6 +206,7 @@ export function AuthProvider({
         login,
         register,
         logout,
+        deleteAccount,
         refreshUser,
     };
 
@@ -244,17 +215,4 @@ export function AuthProvider({
             {children}
         </AuthContext.Provider>
     );
-}
-
-export function useAuth(): AuthContextValue {
-    const context =
-        useContext(AuthContext);
-
-    if (!context) {
-        throw new Error(
-            "useAuth must be used inside an AuthProvider",
-        );
-    }
-
-    return context;
 }

@@ -4,6 +4,11 @@ import { Analytics } from "@vercel/analytics/react";
 
 import "./index.css";
 import App from "./App.tsx";
+import { loadPreferences } from "./lib/preferences.ts";
+
+document.documentElement.dataset.reduceMotion = String(
+  loadPreferences().reduceMotion,
+);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

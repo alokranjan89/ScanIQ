@@ -8,7 +8,7 @@ import {
     ScanLine,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { ApiError } from "../api/client";
 
 function RegisterPage() {

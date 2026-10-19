@@ -55,3 +55,27 @@ export const loginSchema = z.object({
             ),
     }),
 });
+
+export const forgotPasswordSchema = z.object({
+    body: z.object({ email: emailSchema }),
+});
+
+export const resetPasswordSchema = z.object({
+    body: z.object({
+        token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+        password: passwordSchema,
+    }),
+});
+
+export const deleteAccountSchema = z.object({
+    body: z.object({
+        password: z.string().min(1).max(128),
+    }),
+});
+
+export const changePasswordSchema = z.object({
+    body: z.object({
+        currentPassword: z.string().min(1).max(128),
+        newPassword: passwordSchema,
+    }),
+});

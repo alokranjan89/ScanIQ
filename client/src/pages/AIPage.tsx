@@ -8,8 +8,10 @@ import { explainProduct } from "../api/ai.api";
 import { getProductByBarcode } from "../api/products.api";
 
 import type { Product } from "../types/api";
+import { loadPreferences } from "../lib/preferences";
 
 function AIPage() {
+    const [aiEnabled] = useState(() => loadPreferences().aiExplanations);
     const { barcode } = useParams<{
         barcode: string;
     }>();
@@ -26,22 +28,20 @@ function AIPage() {
         useState<string | null>(null);
 
     const [isLoading, setIsLoading] =
-        useState(true);
+        useState(Boolean(barcode));
 
     const [isAsking, setIsAsking] =
         useState(false);
 
     const [error, setError] =
-        useState<string | null>(null);
+        useState<string | null>(() =>
+            barcode
+                ? null
+                : "No barcode was provided.",
+        );
 
     useEffect(() => {
         if (!barcode) {
-            setError(
-                "No barcode was provided.",
-            );
-
-            setIsLoading(false);
-
             return;
         }
 
@@ -49,9 +49,6 @@ function AIPage() {
 
         const loadProduct = async () => {
             try {
-                setIsLoading(true);
-                setError(null);
-
                 const result =
                     await getProductByBarcode(
                         barcode,
@@ -59,6 +56,7 @@ function AIPage() {
 
                 if (!cancelled) {
                     setProduct(result);
+                    setError(null);
                 }
             } catch (err) {
                 if (cancelled) {
@@ -126,6 +124,15 @@ function AIPage() {
             setIsAsking(false);
         }
     };
+
+    if (!aiEnabled) {
+        return (
+            <main className="page-shell mx-auto max-w-3xl px-4 py-12">
+                <h1 className="text-2xl font-bold text-slate-950">AI explanations are disabled</h1>
+                <p className="mt-2 text-slate-600">Enable AI explanations in Profile &amp; Settings to use this feature.</p>
+            </main>
+        );
+    }
 
     if (isLoading) {
         return (

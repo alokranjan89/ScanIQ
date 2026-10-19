@@ -8,7 +8,7 @@ import {
     ScanLine,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { ApiError } from "../api/client";
 
 function LoginPage() {
@@ -183,6 +183,12 @@ function LoginPage() {
                                     )}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="-mt-2 text-right">
+                            <Link to="/forgot-password" className="text-sm font-semibold text-teal-700 hover:underline">
+                                Forgot password?
+                            </Link>
                         </div>
 
                         {/* Error */}

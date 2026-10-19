@@ -42,6 +42,7 @@ test(
             payload,
             {
                 userId: 123,
+                tokenVersion: 0,
             }
         );
     }

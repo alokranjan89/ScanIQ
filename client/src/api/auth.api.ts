@@ -90,3 +90,45 @@ export const logout = async (): Promise<void> => {
         clearAuthToken();
     }
 };
+
+export const requestPasswordReset = async (
+    email: string,
+): Promise<void> => {
+    await apiRequest("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
+};
+
+export const resetPassword = async (
+    token: string,
+    password: string,
+): Promise<void> => {
+    await apiRequest("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password }),
+    });
+};
+
+export const removeAccount = async (
+    password: string,
+): Promise<void> => {
+    await apiRequest("/auth/me", {
+        method: "DELETE",
+        body: JSON.stringify({ password }),
+    });
+    clearAuthToken();
+};
+
+export const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+): Promise<void> => {
+    const response = await apiRequest<{
+        data: { success: true; accessToken: string };
+    }>("/auth/me/password", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    setAuthToken(response.data.accessToken);
+};

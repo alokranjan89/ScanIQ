@@ -7,6 +7,10 @@ import {
 import {
     registerUser,
     loginUser,
+    requestPasswordReset,
+    resetUserPassword,
+    deleteAccount,
+    changeUserPassword,
 } from "../services/auth.service.js";
 
 import {
@@ -100,4 +104,69 @@ export const logout = async (
             message: "Logged out successfully",
         },
     });
+};
+
+export const forgotPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        await requestPasswordReset(req.body.email);
+        return res.status(200).json({
+            data: {
+                message: "If an account exists for that email, a reset link has been sent.",
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resetPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        await resetUserPassword(req.body.token, req.body.password);
+        return res.status(200).json({ data: { success: true } });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const removeAccount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const authenticatedRequest = req as AuthenticatedRequest;
+        await deleteAccount(
+            authenticatedRequest.user.id,
+            req.body.password,
+        );
+        return res.status(200).json({ data: { success: true } });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const authenticatedRequest = req as AuthenticatedRequest;
+        const accessToken = await changeUserPassword(
+            authenticatedRequest.user.id,
+            req.body.currentPassword,
+            req.body.newPassword,
+        );
+        return res.status(200).json({ data: { success: true, accessToken } });
+    } catch (error) {
+        next(error);
+    }
 };

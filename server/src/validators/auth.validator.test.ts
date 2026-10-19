@@ -4,6 +4,9 @@ import test from "node:test";
 import {
     registerSchema,
     loginSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
+    deleteAccountSchema,
 } from "./auth.validator.js";
 
 test(
@@ -36,6 +39,29 @@ test(
         }
     }
 );
+
+test("password reset and account deletion schemas validate input", () => {
+    assert.equal(
+        forgotPasswordSchema.safeParse({ body: { email: "USER@example.com" } }).success,
+        true,
+    );
+    assert.equal(
+        resetPasswordSchema.safeParse({
+            body: { token: "a".repeat(43), password: "NewStrongPassword123!" },
+        }).success,
+        true,
+    );
+    assert.equal(
+        resetPasswordSchema.safeParse({
+            body: { token: "invalid", password: "short" },
+        }).success,
+        false,
+    );
+    assert.equal(
+        deleteAccountSchema.safeParse({ body: { password: "current-password" } }).success,
+        true,
+    );
+});
 
 test(
     "registerSchema rejects invalid email",

@@ -88,7 +88,7 @@ Products that can't be found anywhere are negatively cached in Redis, so repeate
 - **🤖 AI Product Explanations** — Google Gemini explains complex product data, highlights key ingredients, separates facts from interpretation, and avoids unsupported health or medical claims.
 - **🔒 Secure Authentication** — JWT access tokens, bcrypt password hashing (12 salt rounds), and user-isolated scan history and favorites.
 - **🔍 Catalog Search** — Sub-string and attribute search by product name, brand, barcode, or model number.
-- **📱 Responsive PWA** — Works across desktop and mobile browsers.
+- **📱 Responsive interface** — Works across desktop and mobile browsers.
 
 ---
 
@@ -191,6 +191,10 @@ JWT_SECRET=your_super_secret_jwt_key_must_be_at_least_32_characters
 # AI Integration
 AI_API_KEY=your_gemini_api_key_here
 AI_MODEL=gemini-2.0-flash
+
+# Password reset email (Resend; use a verified sender domain)
+RESEND_API_KEY=re_your_resend_api_key
+RESEND_FROM_EMAIL="ScanIQ <noreply@your-domain.com>"
 ```
 
 Run migrations and start the server:
@@ -241,7 +245,11 @@ Base URL: `/api/v1`
 | :--- | :--- | :--- | :---: |
 | `POST` | `/auth/register` | Register new user account | No |
 | `POST` | `/auth/login` | Log in and receive JWT token | No |
+| `POST` | `/auth/forgot-password` | Email a one-time password reset link | No |
+| `POST` | `/auth/reset-password` | Set a new password using a reset token | No |
 | `GET` | `/auth/me` | Fetch authenticated user profile | Yes |
+| `PATCH` | `/auth/me/password` | Change password after confirming the current password | Yes |
+| `DELETE` | `/auth/me` | Delete account after password confirmation | Yes |
 
 ### Products & Scanner
 
@@ -257,7 +265,7 @@ Base URL: `/api/v1`
 
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/ai/explain` | Generate AI explanation for product data | No |
+| `POST` | `/ai/explain` | Generate AI explanation for product data | Yes |
 
 ### User Features (Scans & Favorites)
 
@@ -286,8 +294,7 @@ Backend tests use Node.js's built-in test runner (`node:test`).
 ## 🗺️ Roadmap
 
 - [ ] Additional barcode providers for broader coverage
-- [ ] Offline scan queueing for PWA installs
-- [ ] Product comparison view (side-by-side)
+- [ ] Offline scan queueing
 - [ ] Public read-only API rate tiers
 
 ---

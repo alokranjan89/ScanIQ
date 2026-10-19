@@ -24,14 +24,12 @@ function FavoritesPage() {
 
     const loadFavorites = useCallback(async () => {
         try {
-            setIsLoading(true);
-            setError(null);
-
             const data = await getFavorites();
             const safeData = Array.isArray(data) ? data : [];
 
             if (isMountedRef.current) {
                 setFavorites(safeData);
+                setError(null);
             }
         } catch (err) {
             if (isMountedRef.current) {
@@ -49,8 +47,20 @@ function FavoritesPage() {
     }, []);
 
     useEffect(() => {
-        void loadFavorites();
+        const timeoutId = window.setTimeout(() => {
+            void loadFavorites();
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
     }, [loadFavorites]);
+
+    const handleRetry = () => {
+        setIsLoading(true);
+        setError(null);
+        void loadFavorites();
+    };
 
     const handleRemove = async (favorite: Favorite) => {
         try {
@@ -119,7 +129,7 @@ function FavoritesPage() {
                     <p className="text-sm text-red-700">{error}</p>
                     <button
                         type="button"
-                        onClick={() => void loadFavorites()}
+                        onClick={handleRetry}
                         className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                     >
                         Try again
