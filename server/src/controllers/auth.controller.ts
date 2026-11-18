@@ -15,6 +15,7 @@ import {
 
 import {
     findUserById,
+    invalidateUserTokens,
 } from "../repositories/user.repository.js";
 
 import {
@@ -94,16 +95,23 @@ export const getCurrentUser = async (
 };
 
 export const logout = async (
-    _req: Request,
+    req: Request,
     res: Response,
-    _next: NextFunction
+    next: NextFunction
 ) => {
-    return res.status(200).json({
-        data: {
-            success: true,
-            message: "Logged out successfully",
-        },
-    });
+    try {
+        const authenticatedRequest = req as AuthenticatedRequest;
+        await invalidateUserTokens(authenticatedRequest.user.id);
+
+        return res.status(200).json({
+            data: {
+                success: true,
+                message: "Logged out successfully",
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 export const forgotPassword = async (

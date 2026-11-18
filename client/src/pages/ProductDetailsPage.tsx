@@ -173,6 +173,9 @@ export default function ProductDetailsPage() {
     const [favoriteLoading, setFavoriteLoading] =
         useState(false);
 
+    const [actionError, setActionError] =
+        useState<string | null>(null);
+
     const [verification, setVerification] =
         useState<VerificationResult | null>(null);
 
@@ -270,6 +273,7 @@ export default function ProductDetailsPage() {
         }
 
         setFavoriteLoading(true);
+        setActionError(null);
 
         try {
             if (favorite) {
@@ -286,9 +290,10 @@ export default function ProductDetailsPage() {
                 setFavorite(true);
             }
         } catch (err) {
-            console.error(
-                "Favorite update failed:",
-                err,
+            setActionError(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to update favorite.",
             );
         } finally {
             setFavoriteLoading(false);
@@ -304,6 +309,7 @@ export default function ProductDetailsPage() {
         }
 
         setVerificationLoading(true);
+        setActionError(null);
 
         try {
             const result =
@@ -317,9 +323,10 @@ export default function ProductDetailsPage() {
                 true,
             );
         } catch (err) {
-            console.error(
-                "Verification failed:",
-                err,
+            setActionError(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to verify this product.",
             );
         } finally {
             setVerificationLoading(false);
@@ -515,6 +522,15 @@ export default function ProductDetailsPage() {
                                     Verify Product
                                 </button>
                             </div>
+
+                            {actionError && (
+                                <p
+                                    role="alert"
+                                    className="mt-3 w-full text-sm text-red-700"
+                                >
+                                    {actionError}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>

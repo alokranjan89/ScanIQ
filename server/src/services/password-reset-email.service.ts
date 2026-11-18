@@ -42,7 +42,7 @@ export const sendPasswordResetEmail = async (
         throw new AppError(
             503,
             "PASSWORD_RESET_EMAIL_FAILED",
-            "Unable to send a password reset email right now",
+            `Email provider rejected the password reset email (HTTP ${response.status})`,
         );
     }
 };

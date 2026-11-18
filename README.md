@@ -80,7 +80,7 @@ Products that can't be found anywhere are negatively cached in Redis, so repeate
 
 ## ✨ Features
 
-- **📷 Barcode & QR Scanner** — Live camera scanning via `@zxing/browser` and `html5-qrcode`, with debounced duplicate-scan detection, camera permission handling, and manual barcode entry fallback.
+- **📷 Barcode & QR Scanner** — Live camera scanning via `@zxing/browser`, with duplicate-scan protection, camera permission handling, and manual barcode entry fallback.
 - **🏷️ Multi-Format Support** — EAN-13, EAN-8, UPC-A, and QR codes.
 - **⚡ Two-Tier Caching** — Redis in front of PostgreSQL for sub-500ms repeated lookups, including negative caching for products that don't exist.
 - **🌐 Multi-Provider Data Enrichment** — Aggregates and normalizes product metadata from UPCitemdb and Open Food Facts, with deduplication, ingredient parsing, and nutrition normalization.
@@ -158,6 +158,19 @@ ScanIQ/
 
 ## ⚙️ Getting Started
 
+### Run with Docker Compose
+
+Docker Compose starts the React client, API, PostgreSQL, and Redis together.
+Copy `.env.example` to `.env`, set `JWT_SECRET` and `AI_API_KEY`, then run:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:5173`. The API runs at `http://localhost:5000` and
+applies database migrations on startup. Stop the containers with
+`docker compose down`; the PostgreSQL data remains in a named volume.
+
 ### Prerequisites
 
 - **Node.js** v20.x or v22.x
@@ -205,6 +218,8 @@ npm run dev
 ```
 
 The backend API runs at `http://localhost:5000`.
+
+Redis is used only for caching; if it is not running, the server disables the cache and continues. To enable it locally, start Redis on `localhost:6379` or update `REDIS_URL`. Password reset emails require a valid Resend API key and a sender address on a verified Resend domain. If delivery fails, check the server log for the provider's HTTP status (for example, an invalid key or unverified sender).
 
 ### Frontend Setup (`client/`)
 

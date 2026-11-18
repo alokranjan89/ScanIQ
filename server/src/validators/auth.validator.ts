@@ -16,6 +16,10 @@ const passwordSchema = z
     .max(
         128,
         "Password is too long"
+    )
+    .refine(
+        (password) => Buffer.byteLength(password, "utf8") <= 72,
+        "Password must be no more than 72 UTF-8 bytes",
     );
 
 export const registerSchema = z.object({

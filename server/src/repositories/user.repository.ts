@@ -53,3 +53,10 @@ export const updateUserPassword = async (
         return user;
     });
 };
+
+export const invalidateUserTokens = async (userId: number) => {
+    return prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } },
+    });
+};

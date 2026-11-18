@@ -32,6 +32,10 @@ import {
 const hashResetToken = (token: string): string =>
     createHash("sha256").update(token).digest("hex");
 
+const DUMMY_PASSWORD_HASH =
+    "$2b$12$5UncWrMrM6TXvTYQoblmGO3iy0D/GQuaAeT7zyJG9tmG1cDJC981m";
+const PASSWORD_RESET_MIN_RESPONSE_MS = 300;
+
 const normalizeEmail = (
     email: string
 ): string => {
@@ -107,21 +111,12 @@ export const loginUser = async (data: {
     const user =
         await findUserByEmail(email);
 
-    if (!user) {
-        throw new AppError(
-            401,
-            "INVALID_CREDENTIALS",
-            "Invalid email or password"
-        );
-    }
+    const passwordValid = await comparePassword(
+        data.password,
+        user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
 
-    const passwordValid =
-        await comparePassword(
-            data.password,
-            user.passwordHash
-        );
-
-    if (!passwordValid) {
+    if (!user || !passwordValid) {
         throw new AppError(
             401,
             "INVALID_CREDENTIALS",
@@ -145,26 +140,36 @@ export const loginUser = async (data: {
 export const requestPasswordReset = async (emailInput: string): Promise<void> => {
     assertPasswordResetEmailConfigured();
 
+    const startedAt = Date.now();
     const user = await findUserByEmail(normalizeEmail(emailInput));
-    if (!user) return;
 
-    const token = randomBytes(32).toString("base64url");
-    const tokenHash = hashResetToken(token);
+    if (user) {
+        const token = randomBytes(32).toString("base64url");
+        const tokenHash = hashResetToken(token);
 
-    await replacePasswordResetToken(
-        user.id,
-        tokenHash,
-        new Date(Date.now() + 30 * 60 * 1000),
-    );
-
-    try {
-        await sendPasswordResetEmail(user.email, token);
-    } catch (error) {
-        await removePasswordResetToken(tokenHash);
-        console.error(
-            "Password reset email delivery failed:",
-            error instanceof Error ? error.message : "Unknown email provider error",
+        await replacePasswordResetToken(
+            user.id,
+            tokenHash,
+            new Date(Date.now() + 30 * 60 * 1000),
         );
+
+        void sendPasswordResetEmail(user.email, token).catch(async (error) => {
+            console.error(
+                "Password reset email delivery failed:",
+                error instanceof Error ? error.message : "Unknown email provider error",
+            );
+
+            try {
+                await removePasswordResetToken(tokenHash);
+            } catch (cleanupError) {
+                console.error("Failed to remove undelivered password reset token:", cleanupError);
+            }
+        });
+    }
+
+    const remainingDelay = PASSWORD_RESET_MIN_RESPONSE_MS - (Date.now() - startedAt);
+    if (remainingDelay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingDelay));
     }
 };
 

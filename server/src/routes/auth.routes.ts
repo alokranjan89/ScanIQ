@@ -78,6 +78,7 @@ router.post(
 
 router.post(
     "/logout",
+    requireAuth,
     logout
 );
 
